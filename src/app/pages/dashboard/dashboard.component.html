@@ -1,0 +1,92 @@
+<main class="dashboard-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">OVERVIEW</p>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Monitor fleet activity and transport operations.</p>
+    </div>
+    <a class="orders-link" routerLink="/orders">View orders <span aria-hidden="true">→</span></a>
+  </header>
+
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" (click)="loadDashboard()">Retry</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="loading-message" role="status">Loading dashboard...</p>
+  } @else if (stats(); as dashboardStats) {
+    <section class="stats-grid" aria-label="Dashboard statistics">
+      <a class="stat-card accent-yellow" routerLink="/orders">
+        <span class="stat-label">Total orders</span>
+        <strong>{{ formatNumber(dashboardStats.totalOrders) }}</strong>
+        <span class="stat-hint">View order list →</span>
+      </a>
+      <a class="stat-card accent-blue" routerLink="/vehicles">
+        <span class="stat-label">Vehicles in use</span>
+        <strong>{{ formatNumber(dashboardStats.totalVehicales) }}</strong>
+        <span class="stat-hint">Open vehicles →</span>
+      </a>
+      <article class="stat-card accent-green">
+        <span class="stat-label">Active deliveries</span>
+        <strong>{{ formatNumber(dashboardStats.activeOrders) }}</strong>
+        <span class="stat-hint">Orders in progress</span>
+      </article>
+      <article class="stat-card accent-red">
+        <span class="stat-label">Pending issues</span>
+        <strong>{{ formatNumber(dashboardStats.pendingOrders) }}</strong>
+        <span class="stat-hint">Require attention</span>
+      </article>
+      <article class="stat-card accent-purple">
+        <span class="stat-label">Completed deliveries</span>
+        <strong>{{ formatNumber(dashboardStats.completeOrders) }}</strong>
+        <span class="stat-hint">Completed orders</span>
+      </article>
+      <article class="stat-card accent-yellow">
+        <span class="stat-label">Diesel consumption</span>
+        <strong>{{ formatNumber(dashboardStats.diesel) }} L</strong>
+        <span class="stat-hint">Fleet fuel usage</span>
+      </article>
+    </section>
+
+    <section class="module-section" aria-labelledby="modules-heading">
+      <div class="module-heading">
+        <p class="eyebrow">WORKSPACE</p>
+        <h2 id="modules-heading">Transport modules</h2>
+      </div>
+      <div class="module-grid">
+        <a class="module-card" routerLink="/drivers">
+          <span class="module-icon" aria-hidden="true">D</span>
+          <span><strong>Drivers</strong><small>Manage your drivers</small></span>
+          <span class="module-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="module-card" routerLink="/trips">
+          <span class="module-icon" aria-hidden="true">T</span>
+          <span><strong>Trips</strong><small>Create and track trips</small></span>
+          <span class="module-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="module-card" routerLink="/quotation">
+          <span class="module-icon" aria-hidden="true">Q</span>
+          <span><strong>Quotation</strong><small>Prepare customer quotations</small></span>
+          <span class="module-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="module-card" routerLink="/vehicles">
+          <span class="module-icon" aria-hidden="true">V</span>
+          <span><strong>Vehicles</strong><small>Manage fleet vehicles</small></span>
+          <span class="module-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="welcome-card">
+      <div>
+        <p class="eyebrow">TRANSPORT OPERATIONS</p>
+        <h2>Keep your fleet moving</h2>
+        <p>Review and manage customer orders from one place.</p>
+      </div>
+      <a routerLink="/orders">Open orders <span aria-hidden="true">→</span></a>
+    </section>
+  }
+</main>

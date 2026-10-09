@@ -1,0 +1,111 @@
+<main class="billed-trips-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FLEET OPERATIONS</span>
+      <h1>Billed Trips</h1>
+      <p class="page-subtitle">Review billed trips, advances, diesel, and totals.</p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-button" type="button" title="Refresh billed trips" aria-label="Refresh billed trips"
+        [disabled]="loading" (click)="loadTrips()">↻</button>
+      <button class="print-button" type="button" [disabled]="loading || filteredTrips.length === 0"
+        (click)="printReport()">
+        <span aria-hidden="true">⎙</span>
+        Print
+      </button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Billed trip totals">
+    <article class="summary-card">
+      <span class="summary-icon payment-icon" aria-hidden="true">₹</span>
+      <div><strong>₹{{ formatNumber(totalPayment) }}</strong><span>Sum of Total Payment</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon advance-icon" aria-hidden="true">A</span>
+      <div><strong>₹{{ formatNumber(totalAdvance) }}</strong><span>Sum of Advance Payment</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon diesel-icon" aria-hidden="true">L</span>
+      <div><strong>{{ formatNumber(totalDiesel) }} L</strong><span>Sum of Total Diesel</span></div>
+    </article>
+    <article class="summary-card" [class.due-credit]="duePayment < 0">
+      <span class="summary-icon due-icon" aria-hidden="true">D</span>
+      <div><strong>₹{{ formatNumber(duePayment) }}</strong><span>Due Payment</span></div>
+    </article>
+  </section>
+
+  <section class="report-card" aria-label="Billed trips report">
+    <div class="report-toolbar">
+      <div>
+        <span class="eyebrow">TRIP REPORT</span>
+        <h2>Treep Report</h2>
+      </div>
+      <label class="search-field">
+        <span class="visually-hidden">Search billed trips</span>
+        <span aria-hidden="true">⌕</span>
+        <input type="search" [(ngModel)]="searchTerm" placeholder="Search trips..." />
+      </label>
+    </div>
+
+    @if (loading) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading billed trips…</div>
+    } @else if (trips.length === 0) {
+      <div class="table-state empty-state">No billed trips found.</div>
+    } @else if (filteredTrips.length === 0) {
+      <div class="table-state empty-state">No billed trips match your search.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Trip ID</th>
+              <th>Date</th>
+              <th>Details</th>
+              <th>Customer Name</th>
+              <th>Vehicle Number</th>
+              <th>Diesel (Litres)</th>
+              <th>Advance Payment</th>
+              <th>Total Soil (Brass / Qty)</th>
+              <th>Soil Rate per Brass</th>
+              <th>Total Payment</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (trip of filteredTrips; track trip.id) {
+              <tr>
+                <td><span class="trip-id">#{{ trip.id }}</span></td>
+                <td>{{ trip.createDate || '—' }}</td>
+                <td>{{ trip.item || '—' }}</td>
+                <td>{{ trip.customerName || '—' }}</td>
+                <td><span class="vehicle-number">{{ trip.selectedVehicle || '—' }}</span></td>
+                <td>{{ trip.diesel === undefined || trip.diesel === '' ? '—' : formatNumber(trip.diesel) }}</td>
+                <td>₹{{ formatNumber(trip.advance) }}</td>
+                <td>{{ trip.soilBrass === undefined || trip.soilBrass === '' ? '—' : formatNumber(trip.soilBrass) }}</td>
+                <td>₹{{ formatNumber(trip.soilRate) }}</td>
+                <td class="total-cell">₹{{ formatNumber(trip.totalPayment) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5">Visible trips total</td>
+              <td>{{ formatNumber(totalDiesel) }} L</td>
+              <td>₹{{ formatNumber(totalAdvance) }}</td>
+              <td colspan="2"></td>
+              <td>₹{{ formatNumber(totalPayment) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredTrips.length }} of {{ trips.length }} billed trips</div>
+    }
+  </section>
+</main>

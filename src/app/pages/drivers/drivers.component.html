@@ -1,0 +1,772 @@
+<div class="drivers-page">
+
+  <!-- ==========================================================
+       Page Header
+       ========================================================== -->
+
+  <div class="page-header">
+
+    <div>
+      <h1>Drivers</h1>
+
+      <p class="page-subtitle">
+        Manage drivers and assigned vehicles
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="openAddDriverModal()"
+    >
+      <span class="btn-icon">+</span>
+      Add New Driver
+    </button>
+
+  </div>
+
+
+  <!-- ==========================================================
+       Error
+       ========================================================== -->
+
+  @if (errorMessage) {
+
+    <div class="alert alert-error">
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+      <button
+        type="button"
+        class="alert-close"
+        (click)="errorMessage = ''"
+      >
+        ×
+      </button>
+
+    </div>
+
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button
+        type="button"
+        class="alert-close"
+        aria-label="Dismiss success message"
+        (click)="successMessage = ''"
+      >
+        ×
+      </button>
+    </div>
+  }
+
+
+  <!-- ==========================================================
+       Filters
+       ========================================================== -->
+
+  <section class="filters-card">
+
+    <div class="filter-field">
+
+      <label for="driverStatus">
+        Status
+      </label>
+
+      <select
+        id="driverStatus"
+        [(ngModel)]="selectedStatus"
+      >
+
+        <option value="">
+          Filter by Status
+        </option>
+
+        @for (
+          status of statusOptions;
+          track status
+        ) {
+
+          <option [value]="status">
+            {{ status | titlecase }}
+          </option>
+
+        }
+
+      </select>
+
+    </div>
+
+
+    <div class="filter-field search-field">
+
+      <label for="driverSearch">
+        Search
+      </label>
+
+      <input
+        id="driverSearch"
+        type="text"
+        [(ngModel)]="searchText"
+        placeholder="Search by Driver Name"
+      />
+
+    </div>
+
+
+    <div class="filter-actions">
+
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="applyFilters()"
+      >
+        Apply Filters
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="clearFilters()"
+      >
+        Clear
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- ==========================================================
+       Driver Table
+       ========================================================== -->
+
+  <section class="table-card">
+
+    <div class="table-header">
+
+      <div>
+
+        <h2>Driver List</h2>
+
+        <span class="record-count">
+          {{ filteredDrivers.length }} drivers
+        </span>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="refresh-button"
+        (click)="loadDrivers()"
+        [disabled]="loading"
+        title="Refresh"
+      >
+        ↻
+      </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>ID</th>
+            <th>Driver Name</th>
+            <th>Driver Mobile</th>
+            <th>Driver Address</th>
+            <th>Driver Aadhar</th>
+            <th>Driver DL Number</th>
+            <th>Assigned Vehicle</th>
+            <th>Salary</th>
+            <th>Actions</th>
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @if (
+            !loading &&
+            filteredDrivers.length === 0
+          ) {
+
+            <tr>
+
+              <td
+                colspan="9"
+                class="empty-state"
+              >
+
+                <div class="empty-icon">
+                  👤
+                </div>
+
+                <h3>
+                  No drivers found
+                </h3>
+
+                <p>
+                  No drivers match your search.
+                </p>
+
+              </td>
+
+            </tr>
+
+          }
+
+
+          @for (
+            driver of filteredDrivers;
+            track driver.id
+          ) {
+
+            <tr
+              class="driver-row"
+              (dblclick)="openDriverDetails(driver)"
+            >
+
+              <!-- ID -->
+
+              <td>
+
+                <span class="driver-id">
+                  {{ driver.id }}
+                </span>
+
+              </td>
+
+
+              <!-- Driver Name -->
+
+              <td>
+
+                <div class="driver-name-cell">
+
+                  <div class="driver-avatar">
+                    {{ driver.driverName.charAt(0) || '?' }}
+                  </div>
+
+                  <span class="driver-name">
+                    {{ driver.driverName || '-' }}
+                  </span>
+
+                </div>
+
+              </td>
+
+
+              <!-- Mobile -->
+
+              <td>
+
+                <span class="mobile-number">
+                  {{ driver.driverMobile || '-' }}
+                </span>
+
+              </td>
+
+
+              <!-- Address -->
+
+              <td>
+
+                <span
+                  class="driver-address"
+                  [title]="driver.driverAddress || ''"
+                >
+                  {{ driver.driverAddress || '-' }}
+                </span>
+
+              </td>
+
+
+              <!-- Aadhar -->
+
+              <td>
+
+                <span class="sensitive-value">
+                  {{ driver.driverAadhar || '-' }}
+                </span>
+
+              </td>
+
+
+              <!-- Driving License -->
+
+              <td>
+
+                <span class="license-number">
+                  {{ driver.driverLiencense || 'N/A' }}
+                </span>
+
+              </td>
+
+
+              <!-- Vehicle -->
+
+              <td>
+
+                @if (driver.machineNumber) {
+
+                  <span class="vehicle-badge">
+                    {{ driver.machineNumber }}
+                  </span>
+
+                } @else {
+
+                  <span class="muted">
+                    Not Assigned
+                  </span>
+
+                }
+
+              </td>
+
+
+              <!-- Salary -->
+
+              <td>
+
+                <span class="salary">
+                  {{ formatSalary(driver.driverSalary) }}
+                </span>
+
+              </td>
+
+
+              <!-- Actions -->
+
+              <td>
+
+                <div class="actions">
+
+                  <button
+                    type="button"
+                    class="action-button view"
+                    (click)="
+                      openDriverDetails(driver);
+                      $event.stopPropagation()
+                    "
+                  >
+                    View
+                  </button>
+
+
+                  <button
+                    type="button"
+                    class="action-button payment"
+                    (click)="
+                      openDriverPayment(driver);
+                      $event.stopPropagation()
+                    "
+                  >
+                    Payment
+                  </button>
+
+                  <button
+                    type="button"
+                    class="action-button payment"
+                    (click)="
+                      openDriverPayment(driver);
+                      $event.stopPropagation()
+                    "
+                  >
+                    👁️‍🗨️
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</div>
+
+@if (showAddDriverModal) {
+  <div class="modal-backdrop add-driver-backdrop" (click)="closeAddDriverModal()">
+    <section
+      class="modal add-driver-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addDriverTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <span class="modal-label">DRIVER MANAGEMENT</span>
+          <h2 id="addDriverTitle">Add New Driver</h2>
+        </div>
+        <button
+          type="button"
+          class="modal-close"
+          aria-label="Close add driver form"
+          [disabled]="addingDriver"
+          (click)="closeAddDriverModal()"
+        >
+          ×
+        </button>
+      </header>
+
+      <form class="add-driver-form" (ngSubmit)="submitAddDriver()">
+        <div class="modal-body add-driver-fields">
+          @if (addDriverError) {
+            <div class="alert alert-error form-alert" role="alert">{{ addDriverError }}</div>
+          }
+
+          <div class="form-field">
+            <label for="newDriverName">Driver Name</label>
+            <input
+              id="newDriverName"
+              name="driverName"
+              type="text"
+              [(ngModel)]="addDriverForm.driverName"
+              placeholder="Enter driver name"
+              autocomplete="name"
+              required
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="newDriverMobile">Driver Mobile</label>
+            <input
+              id="newDriverMobile"
+              name="driverMobile"
+              type="tel"
+              inputmode="numeric"
+              maxlength="10"
+              pattern="[0-9]{10}"
+              [(ngModel)]="addDriverForm.driverMobile"
+              placeholder="10-digit mobile number"
+              autocomplete="tel"
+              required
+            />
+            <span class="field-hint">Enter exactly 10 digits.</span>
+          </div>
+
+          <div class="form-field">
+            <label for="newDriverAddress">Driver Address</label>
+            <textarea
+              id="newDriverAddress"
+              name="driverAddress"
+              rows="3"
+              [(ngModel)]="addDriverForm.driverAddress"
+              placeholder="Enter driver address"
+              autocomplete="street-address"
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="newDriverAadhar">Driver Aadhaar</label>
+              <input
+                id="newDriverAadhar"
+                name="driverAadhar"
+                type="text"
+                inputmode="numeric"
+                maxlength="12"
+                pattern="[0-9]{12}"
+                [(ngModel)]="addDriverForm.driverAadhar"
+                placeholder="12-digit Aadhaar number"
+                required
+              />
+              <span class="field-hint">Enter exactly 12 digits.</span>
+            </div>
+
+            <div class="form-field">
+              <label for="newDriverLicense">Driver License</label>
+              <input
+                id="newDriverLicense"
+                name="driverLiecense"
+                type="text"
+                [(ngModel)]="addDriverForm.driverLiecense"
+                placeholder="Enter license number"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="newDriverSalary">Salary</label>
+            <div class="salary-input">
+              <span aria-hidden="true">₹</span>
+              <input
+                id="newDriverSalary"
+                name="driverSalary"
+                type="number"
+                min="0"
+                step="any"
+                [(ngModel)]="addDriverForm.driverSalary"
+                placeholder="Enter monthly salary"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-footer add-driver-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="addingDriver"
+            (click)="closeAddDriverModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary add-driver-submit"
+            [disabled]="addingDriver"
+          >
+            @if (addingDriver) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Adding Driver…
+            } @else {
+              Add Driver
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+
+<!-- ==========================================================
+     Loading Overlay
+     ========================================================== -->
+
+@if (loading) {
+
+  <div class="loading-overlay">
+
+    <div class="loading-card">
+
+      <div class="spinner"></div>
+
+      <span>
+        Loading drivers...
+      </span>
+
+    </div>
+
+  </div>
+
+}
+
+
+<!-- ==========================================================
+     Driver Details Modal
+     ========================================================== -->
+
+@if (showModal && selectedDriver) {
+
+  <div
+    class="modal-backdrop"
+    (click)="closeModal()"
+  >
+
+    <div
+      class="modal"
+      (click)="$event.stopPropagation()"
+    >
+
+      <!-- Modal Header -->
+
+      <div class="modal-header">
+
+        <div class="driver-profile">
+
+          <div class="large-avatar">
+            {{ selectedDriver.driverName.charAt(0) || '?' }}
+          </div>
+
+          <div>
+
+            <span class="modal-label">
+              DRIVER DETAILS
+            </span>
+
+            <h2>
+              {{ selectedDriver.driverName }}
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="modal-close"
+          (click)="closeModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- Modal Body -->
+
+      <div class="modal-body">
+
+        <div class="details-grid">
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Driver ID
+            </span>
+
+            <strong>
+              {{ selectedDriver.id }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Driver Name
+            </span>
+
+            <strong>
+              {{ selectedDriver.driverName || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Mobile
+            </span>
+
+            <strong>
+              {{ selectedDriver.driverMobile || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Assigned Vehicle
+            </span>
+
+            <strong>
+              {{ selectedDriver.machineNumber || 'Not Assigned' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Driving License
+            </span>
+
+            <strong>
+              {{ selectedDriver.driverLiencense || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Salary
+            </span>
+
+            <strong>
+              {{ formatSalary(selectedDriver.driverSalary) }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item full-width">
+
+            <span class="detail-label">
+              Address
+            </span>
+
+            <strong>
+              {{ selectedDriver.driverAddress || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item full-width">
+
+            <span class="detail-label">
+              Aadhar
+            </span>
+
+            <strong>
+              {{ selectedDriver.driverAadhar || '-' }}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Modal Footer -->
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeModal()"
+        >
+          Close
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="openDriverPayment(selectedDriver)"
+        >
+          Driver Payment
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}

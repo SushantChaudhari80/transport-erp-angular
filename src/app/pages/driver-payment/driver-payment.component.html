@@ -1,0 +1,204 @@
+<main class="payment-page">
+  <header class="page-heading">
+    <div>
+      <span class="eyebrow">DRIVER ACCOUNT</span>
+      <h1>Driver Payment Management</h1>
+    </div>
+    <a class="back-button" routerLink="/drivers">Back to Drivers</a>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="profile-card" aria-label="Driver information">
+    <div class="profile-heading">
+      <div class="driver-avatar" aria-hidden="true">{{ driverName.charAt(0) || '?' }}</div>
+      <div>
+        <span class="card-label">DRIVER</span>
+        <h2>{{ driverName }}</h2>
+      </div>
+      <button type="button" class="primary-button" (click)="openPaymentModal()">
+        + Add Payment
+      </button>
+    </div>
+
+    @if (loadingDriver) {
+      <div class="profile-loading"><span class="spinner" aria-hidden="true"></span>Loading driver details…</div>
+    } @else if (driver) {
+      <div class="driver-meta">
+        <div>
+          <span class="meta-label">Salary</span>
+          <strong>{{ formatAmount(driver.driverSalary) }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Joining Date</span>
+          <strong>{{ driver.createDate || '—' }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Mobile</span>
+          <strong>{{ driver.driverMobile || '—' }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Assigned Vehicle</span>
+          <strong>{{ driver.machineNumber || 'Not Assigned' }}</strong>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="summary-grid" aria-label="Payment summary">
+    <article class="summary-card">
+      <span class="summary-label">Total Payments</span>
+      <strong>{{ totalPayments }}</strong>
+      <span class="summary-footnote">Recorded transactions</span>
+    </article>
+    <article class="summary-card">
+      <span class="summary-label">Total Paid Amount</span>
+      <strong>{{ formatAmount(totalPaidAmount) }}</strong>
+      <span class="summary-footnote">Withdrawals recorded</span>
+    </article>
+    <article class="summary-card">
+      <span class="summary-label">Total Payable Amount</span>
+      <strong>{{ formatAmount(totalPayableAmount) }}</strong>
+      <span class="summary-footnote">Deposits recorded</span>
+    </article>
+    <article class="summary-card" [class.due-negative]="totalDue < 0">
+      <span class="summary-label">Total Due</span>
+      <strong>{{ formatAmount(totalDue) }}</strong>
+      <span class="summary-footnote">Payable minus paid</span>
+    </article>
+  </section>
+
+  <section class="payment-card">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">PAYMENT HISTORY</span>
+        <h2>Transactions</h2>
+      </div>
+      <button type="button" class="refresh-button" [disabled]="loadingPayments" (click)="loadPayments()" title="Refresh payments">
+        ↻
+      </button>
+    </div>
+
+    @if (loadingPayments) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading payments…</div>
+    } @else if (payments.length === 0) {
+      <div class="table-state empty-state">No payments recorded for this driver.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Payment ID</th>
+              <th>Driver Name</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Comment</th>
+              <th>Transaction</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of payments; track payment.id) {
+              <tr>
+                <td><span class="payment-id">#{{ payment.id }}</span></td>
+                <td>{{ payment.driverName || driverName }}</td>
+                <td>{{ payment.date || '—' }}</td>
+                <td>{{ formatAmount(payment.amount) }}</td>
+                <td>{{ payment.comment || '—' }}</td>
+                <td>
+                  <span class="transaction-badge" [class]="transactionClass(payment.transaction)">
+                    {{ payment.transaction || '—' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>
+
+@if (showPaymentModal) {
+  <div class="overlay" (click)="closePaymentModal()">
+    <section
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="paymentDialogTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">PAYMENT FOR {{ driverName }}</span>
+          <h2 id="paymentDialogTitle">Add Payment</h2>
+        </div>
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Close payment form"
+          [disabled]="savingPayment"
+          (click)="closePaymentModal()"
+        >×</button>
+      </header>
+
+      <form (ngSubmit)="submitPayment()">
+        <div class="dialog-body">
+          @if (paymentError) {
+            <div class="alert alert-error" role="alert">{{ paymentError }}</div>
+          }
+          <div class="form-field">
+            <label for="paymentAmount">Amount</label>
+            <div class="amount-input">
+              <span aria-hidden="true">₹</span>
+              <input
+                id="paymentAmount"
+                name="amount"
+                type="number"
+                min="0.01"
+                step="any"
+                [(ngModel)]="paymentForm.amount"
+                placeholder="Enter amount"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="paymentComment">Comment</label>
+            <input
+              id="paymentComment"
+              name="comment"
+              type="text"
+              [(ngModel)]="paymentForm.comment"
+              placeholder="Optional comment"
+            />
+          </div>
+        </div>
+        <footer class="dialog-footer">
+          <button type="button" class="secondary-button" [disabled]="savingPayment" (click)="closePaymentModal()">
+            Cancel
+          </button>
+          <button type="submit" class="primary-button" [disabled]="savingPayment">
+            @if (savingPayment) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Submitting…
+            } @else {
+              Submit Payment
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

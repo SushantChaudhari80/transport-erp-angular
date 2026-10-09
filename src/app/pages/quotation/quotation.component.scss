@@ -1,0 +1,573 @@
+:host {
+  display: block;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.quotation-page {
+  min-height: 100vh;
+
+  padding: 30px;
+
+  background: #f4f6f9;
+
+  color: #2c3e50;
+
+  font-family: 'Poppins', sans-serif;
+}
+
+
+/* ==========================================================
+   Form Container
+   ========================================================== */
+
+.quotation-container {
+  width: 100%;
+  max-width: 800px;
+
+  margin: 0 auto 25px;
+
+  padding: 25px;
+
+  border-radius: 10px;
+
+  background: #fff;
+
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.quotation-header {
+  margin-bottom: 25px;
+
+  padding-bottom: 12px;
+
+  border-bottom: 2px solid #3498db;
+
+  text-align: center;
+
+  h1 {
+    margin: 0;
+
+    color: #3498db;
+
+    font-size: 24px;
+    font-weight: 600;
+  }
+}
+
+
+/* ==========================================================
+   Error
+   ========================================================== */
+
+.error-message {
+  position: relative;
+
+  margin-bottom: 18px;
+
+  padding: 12px 40px 12px 14px;
+
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+
+  background: #fee2e2;
+
+  color: #991b1b;
+
+  font-size: 13px;
+
+  button {
+    position: absolute;
+
+    top: 50%;
+    right: 10px;
+
+    transform: translateY(-50%);
+
+    border: 0;
+
+    background: transparent;
+
+    color: inherit;
+
+    font-size: 20px;
+
+    cursor: pointer;
+  }
+}
+
+
+/* ==========================================================
+   Form
+   ========================================================== */
+
+.quotation-form {
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  label {
+    color: #2c3e50;
+
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  input,
+  select {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: 1px solid #ddd;
+    border-radius: 5px;
+
+    outline: none;
+
+    background: #fff;
+
+    color: #2c3e50;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: #3498db;
+
+      box-shadow:
+        0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+  }
+}
+
+.calculate-btn {
+  grid-column: 1 / -1;
+
+  width: 100%;
+
+  height: 43px;
+
+  border: 0;
+  border-radius: 5px;
+
+  background: #27ae60;
+
+  color: #fff;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #229954;
+  }
+}
+
+
+/* ==========================================================
+   Preview
+   ========================================================== */
+
+.quotation-preview {
+  width: 100%;
+  max-width: 800px;
+
+  margin: 0 auto;
+
+  h2 {
+    margin: 0 0 12px;
+
+    color: #2c3e50;
+
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+
+/* ==========================================================
+   Receipt
+   ========================================================== */
+
+.receipt {
+  width: 100%;
+
+  padding: 25px;
+
+  border: 1px solid #ccc;
+  border-radius: 5px;
+
+  background: #fff;
+
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.receipt-header {
+  text-align: center;
+
+  margin-bottom: 15px;
+
+  font-size: 12px;
+
+  p {
+    margin: 5px 0;
+  }
+}
+
+.logo-container {
+  margin-bottom: 10px;
+
+  img {
+    display: block;
+
+    max-width: 70%;
+    max-height: 90px;
+
+    width: auto;
+    height: auto;
+
+    margin: 0 auto;
+  }
+}
+
+.company-name {
+  color: #2c3e50;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+.divider {
+  margin: 10px 0;
+
+  border-bottom: 1px dashed #000;
+}
+
+
+/* ==========================================================
+   Receipt Details
+   ========================================================== */
+
+.receipt-details {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 30px;
+
+  margin: 20px 0;
+
+  font-size: 13px;
+}
+
+.customer-details,
+.bill-details {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.customer-details {
+  flex: 1;
+}
+
+.bill-details {
+  min-width: 220px;
+}
+
+.customer-details div,
+.bill-details div {
+  display: flex;
+
+  gap: 8px;
+
+  line-height: 1.5;
+}
+
+.customer-details strong,
+.bill-details strong {
+  flex-shrink: 0;
+}
+
+.customer-details span,
+.bill-details span {
+  word-break: break-word;
+}
+
+
+/* ==========================================================
+   Table
+   ========================================================== */
+
+.quotation-table {
+  width: 100%;
+
+  margin-top: 15px;
+
+  border-collapse: collapse;
+
+  font-size: 12px;
+}
+
+.quotation-table th,
+.quotation-table td {
+  padding: 8px;
+
+  border: 1px solid #000;
+
+  text-align: left;
+}
+
+.quotation-table th {
+  background: #f8f8f8;
+
+  font-weight: 600;
+}
+
+.quotation-table th:first-child,
+.quotation-table td:first-child {
+  width: 60px;
+
+  text-align: center;
+}
+
+.quotation-table th:nth-child(3),
+.quotation-table td:nth-child(3) {
+  width: 80px;
+
+  text-align: right;
+}
+
+.quotation-table th:nth-child(4),
+.quotation-table td:nth-child(4) {
+  width: 100px;
+
+  text-align: right;
+}
+
+.quotation-table th:last-child,
+.quotation-table td:last-child {
+  width: 120px;
+
+  text-align: right;
+}
+
+.total-row {
+  font-weight: 700;
+
+  td {
+    background: #fafafa;
+  }
+}
+
+
+/* ==========================================================
+   Signature
+   ========================================================== */
+
+.signature-section {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+  margin-top: 25px;
+
+  font-size: 12px;
+}
+
+.signature-line {
+  width: 200px;
+
+  margin-top: 30px;
+
+  padding-top: 5px;
+
+  border-top: 1px solid #000;
+
+  text-align: center;
+}
+
+
+/* ==========================================================
+   Buttons
+   ========================================================== */
+
+.quotation-actions {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+.print-btn,
+.save-btn {
+  padding: 12px 22px;
+
+  border: 0;
+  border-radius: 5px;
+
+  color: #fff;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.print-btn {
+  background: #3498db;
+
+  &:hover {
+    background: #2980b9;
+  }
+}
+
+.save-btn {
+  background: #27ae60;
+
+  &:hover {
+    background: #229954;
+  }
+}
+
+
+/* ==========================================================
+   Responsive
+   ========================================================== */
+
+@media (max-width: 700px) {
+
+  .quotation-page {
+    padding: 15px;
+  }
+
+  .quotation-container {
+    padding: 18px;
+  }
+
+  .quotation-form {
+    grid-template-columns: 1fr;
+  }
+
+  .calculate-btn {
+    grid-column: auto;
+  }
+
+  .receipt {
+    padding: 15px;
+  }
+
+  .receipt-details {
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .bill-details {
+    min-width: 0;
+  }
+
+  .quotation-table {
+    min-width: 600px;
+  }
+
+  .quotation-preview {
+    overflow-x: auto;
+  }
+}
+
+
+/* ==========================================================
+   Print
+   ========================================================== */
+
+@media print {
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .quotation-page {
+    padding: 0;
+
+    background: #fff;
+  }
+
+  .quotation-container,
+  .quotation-actions,
+  .quotation-page > .quotation-preview > h2 {
+    display: none !important;
+  }
+
+  .quotation-preview {
+    display: block;
+
+    max-width: none;
+
+    margin: 0;
+
+    width: 100%;
+  }
+
+  .quotation-preview .receipt {
+    width: 100%;
+
+    padding: 15px;
+
+    border: 1px solid #000;
+
+    box-shadow: none;
+  }
+
+  .quotation-table {
+    font-size: 11px;
+  }
+
+  .quotation-table th,
+  .quotation-table td {
+    padding: 6px;
+  }
+
+  .logo-container img {
+    max-width: 55%;
+  }
+}

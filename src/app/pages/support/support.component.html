@@ -1,0 +1,220 @@
+<main class="support-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">HELP DESK</span>
+      <h1>Incident / Support</h1>
+      <p class="page-subtitle">Report an issue and follow its progress.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="openCreateForm()">
+      <span aria-hidden="true">+</span>
+      Create Incident
+    </button>
+  </header>
+
+  <div class="storage-notice" role="note">
+    <span class="notice-icon" aria-hidden="true">i</span>
+    Incidents are currently saved in this browser only. Backend synchronization will be added later.
+  </div>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Incident summary">
+    <article class="summary-card">
+      <span class="summary-icon total-icon" aria-hidden="true">#</span>
+      <div><strong>{{ incidents.length }}</strong><span>Total Incidents</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon open-icon" aria-hidden="true">!</span>
+      <div><strong>{{ openCount }}</strong><span>Open</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon progress-icon" aria-hidden="true">↻</span>
+      <div><strong>{{ inProgressCount }}</strong><span>In Progress</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon resolved-icon" aria-hidden="true">✓</span>
+      <div><strong>{{ resolvedCount }}</strong><span>Resolved</span></div>
+    </article>
+  </section>
+
+  <section class="incident-card" aria-label="Incident list">
+    <div class="list-toolbar">
+      <div>
+        <span class="eyebrow">SUPPORT REQUESTS</span>
+        <h2>Incident List</h2>
+      </div>
+      <div class="toolbar-controls">
+        <label class="filter-control">
+          <span class="visually-hidden">Filter by status</span>
+          <select [(ngModel)]="statusFilter" aria-label="Filter incidents by status">
+            <option value="">All statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </label>
+        <label class="search-control">
+          <span class="visually-hidden">Search incidents</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search incidents..." />
+        </label>
+      </div>
+    </div>
+
+    @if (incidents.length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon" aria-hidden="true">!</span>
+        <strong>No incidents yet</strong>
+        <span>Create an incident to get support for an issue.</span>
+        <button type="button" class="secondary-button" (click)="openCreateForm()">Create Incident</button>
+      </div>
+    } @else if (filteredIncidents.length === 0) {
+      <div class="empty-state compact-empty">No incidents match your search or status filter.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Incident</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Created</th>
+              <th>Status</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (incident of filteredIncidents; track incident.id) {
+              <tr>
+                <td>
+                  <button class="incident-title" type="button" (click)="openIncident(incident)">
+                    {{ incident.title }}
+                  </button>
+                  <span class="incident-id">{{ incident.id }}</span>
+                </td>
+                <td>{{ incident.category }}</td>
+                <td><span class="priority-badge" [class]="'priority-' + incident.priority.toLowerCase()">
+                  {{ incident.priority }}
+                </span></td>
+                <td>{{ formatDate(incident.createdAt) }}</td>
+                <td>
+                  <label class="visually-hidden" [for]="'status-' + incident.id">Update status</label>
+                  <select class="status-select" [id]="'status-' + incident.id" [value]="incident.status"
+                    (change)="onStatusChange(incident, $event)">
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                  </select>
+                </td>
+                <td>
+                  <button class="details-button" type="button"
+                    [attr.aria-label]="'View details for ' + incident.title"
+                    (click)="openIncident(incident)">View</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredIncidents.length }} of {{ incidents.length }} incidents</div>
+    }
+  </section>
+</main>
+
+@if (showCreateForm) {
+  <div class="overlay" (click)="closeCreateForm()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="createIncidentTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">SUPPORT REQUEST</span>
+          <h2 id="createIncidentTitle">Create Incident</h2>
+        </div>
+        <button type="button" class="close-button" aria-label="Close form" (click)="closeCreateForm()">×</button>
+      </header>
+      <form (ngSubmit)="createIncident()">
+        <div class="dialog-body">
+          @if (errorMessage) {
+            <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+          }
+          <div class="form-field">
+            <label for="incidentTitle">Incident title</label>
+            <input id="incidentTitle" name="title" type="text" [(ngModel)]="form.title"
+              maxlength="100" placeholder="Briefly describe the issue" required />
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="incidentCategory">Category</label>
+              <select id="incidentCategory" name="category" [(ngModel)]="form.category" required>
+                <option value="">Select category</option>
+                @for (category of categories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="incidentPriority">Priority</label>
+              <select id="incidentPriority" name="priority" [(ngModel)]="form.priority">
+                @for (priority of priorities; track priority) {
+                  <option [value]="priority">{{ priority }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="incidentDescription">Description</label>
+            <textarea id="incidentDescription" name="description" [(ngModel)]="form.description"
+              rows="5" maxlength="2000" placeholder="Describe what happened and any steps to reproduce it" required></textarea>
+            <span class="field-hint">{{ form.description.length }}/2000</span>
+          </div>
+        </div>
+        <footer class="dialog-footer">
+          <button class="secondary-button" type="button" (click)="closeCreateForm()">Cancel</button>
+          <button class="primary-button" type="submit">Create Incident</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedIncident; as incident) {
+  <div class="overlay" (click)="closeIncidentDetails()">
+    <section class="dialog detail-dialog" role="dialog" aria-modal="true" aria-labelledby="incidentDetailTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">{{ incident.id }}</span>
+          <h2 id="incidentDetailTitle">{{ incident.title }}</h2>
+        </div>
+        <button type="button" class="close-button" aria-label="Close details" (click)="closeIncidentDetails()">×</button>
+      </header>
+      <div class="detail-body">
+        <div class="detail-meta">
+          <div><span>Category</span><strong>{{ incident.category }}</strong></div>
+          <div><span>Priority</span><strong>{{ incident.priority }}</strong></div>
+          <div><span>Created</span><strong>{{ formatDate(incident.createdAt) }}</strong></div>
+          <div><span>Status</span><strong>{{ incident.status }}</strong></div>
+        </div>
+        <div class="description-block">
+          <span>Description</span>
+          <p>{{ incident.description }}</p>
+        </div>
+        <div class="local-state-note">This incident is stored in this browser until backend support is added.</div>
+      </div>
+      <footer class="dialog-footer">
+        <button class="secondary-button" type="button" (click)="closeIncidentDetails()">Close</button>
+      </footer>
+    </section>
+  </div>
+}

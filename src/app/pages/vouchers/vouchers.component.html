@@ -1,0 +1,165 @@
+<main class="vouchers-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FINANCE &amp; REPORTS</span>
+      <h1>Voucher Management</h1>
+      <p class="page-subtitle">Create and manage driver and vehicle vouchers.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="openAddModal()">
+      <span aria-hidden="true">+</span>
+      Add Voucher
+    </button>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="vouchers-card" aria-label="Voucher records">
+    <div class="table-toolbar">
+      <div>
+        <span class="eyebrow">VOUCHER REGISTER</span>
+        <h2>All Vouchers</h2>
+      </div>
+      <div class="toolbar-actions">
+        <label class="search-field">
+          <span class="visually-hidden">Search vouchers</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search vouchers..." />
+        </label>
+        <button type="button" class="icon-button" title="Refresh vouchers" aria-label="Refresh vouchers"
+          [disabled]="loadingVouchers" (click)="loadVouchers()">↻</button>
+      </div>
+    </div>
+
+    @if (loadingVouchers) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading vouchers…</div>
+    } @else if (vouchers.length === 0) {
+      <div class="table-state empty-state">No vouchers have been recorded.</div>
+    } @else if (filteredVouchers.length === 0) {
+      <div class="table-state empty-state">No vouchers match your search.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>ID</th>
+            <th>Machine Number</th>
+            <th>Driver Name</th>
+            <th>Amount</th>
+            <th>Create Date</th>
+            <th>Comment</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody>
+            @for (voucher of filteredVouchers; track voucher.id) {
+              <tr>
+                <td><span class="voucher-id">#{{ voucher.id }}</span></td>
+                <td><strong>{{ voucher.machineNumber || '—' }}</strong></td>
+                <td>{{ voucher.driverName || '—' }}</td>
+                <td class="amount">{{ formatAmount(voucher.amount) }}</td>
+                <td>{{ voucher.createDate || '—' }}</td>
+                <td class="comment-cell">{{ voucher.comment || '—' }}</td>
+                <td>
+                  <button class="delete-button" type="button"
+                    [attr.aria-label]="'Delete voucher ' + voucher.id"
+                    [disabled]="deletingVoucherId !== null"
+                    (click)="deleteVoucher(voucher)">
+                    @if (deletingVoucherId === voucher.id) {
+                      <span class="button-spinner" aria-hidden="true"></span>
+                      Deleting…
+                    } @else {
+                      Delete
+                    }
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredVouchers.length }} of {{ vouchers.length }} vouchers</div>
+    }
+  </section>
+</main>
+
+@if (showAddModal) {
+  <div class="overlay" (click)="closeAddModal()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="addVoucherTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">VOUCHER REGISTER</span>
+          <h2 id="addVoucherTitle">Add Voucher</h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Close form" [disabled]="savingVoucher"
+          (click)="closeAddModal()">×</button>
+      </header>
+
+      <form (ngSubmit)="submitVoucher()">
+        <div class="dialog-body">
+          @if (modalError) {
+            <div class="alert alert-error" role="alert">{{ modalError }}</div>
+          }
+          <div class="form-field">
+            <label for="voucherVehicle">Select Vehicle</label>
+            <select id="voucherVehicle" name="vehicle" [(ngModel)]="form.vehicleId" required
+              [disabled]="loadingVehicles">
+              <option value="">{{ loadingVehicles ? 'Loading vehicles…' : 'Select a vehicle' }}</option>
+              @for (vehicle of vehicles; track vehicle.id) {
+                <option [value]="vehicle.id">{{ vehicleNumber(vehicle) }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="voucherDriver">Driver Name</label>
+            <select id="voucherDriver" name="driver" [(ngModel)]="form.driverId" required
+              [disabled]="loadingDrivers">
+              <option value="">{{ loadingDrivers ? 'Loading drivers…' : 'Select a driver' }}</option>
+              @for (driver of drivers; track driver.id) {
+                <option [value]="driver.id">{{ driver.driverName }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="voucherAmount">Amount</label>
+            <div class="amount-input">
+              <span aria-hidden="true">₹</span>
+              <input id="voucherAmount" name="amount" type="number" min="0.01" step="any"
+                [(ngModel)]="form.amount" placeholder="Enter amount" required />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="voucherDate">Create Date</label>
+            <input id="voucherDate" name="createDate" type="date" [(ngModel)]="form.createDate" required />
+          </div>
+          <div class="form-field">
+            <label for="voucherComment">Comment</label>
+            <input id="voucherComment" name="comment" type="text" [(ngModel)]="form.comment"
+              placeholder="Add a note" maxlength="250" required />
+          </div>
+        </div>
+        <footer class="dialog-footer">
+          <button class="secondary-button" type="button" [disabled]="savingVoucher" (click)="closeAddModal()">Cancel</button>
+          <button class="primary-button" type="submit"
+            [disabled]="savingVoucher || loadingVehicles || loadingDrivers || vehicles.length === 0 || drivers.length === 0">
+            @if (savingVoucher) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Saving…
+            } @else {
+              Add Voucher
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

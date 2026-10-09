@@ -1,0 +1,600 @@
+:host {
+  display: block;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.treep-page {
+  min-height: 100vh;
+
+  padding: 30px;
+
+  background: #f4f4f4;
+
+  color: #2c3e50;
+
+  font-family: 'Poppins', sans-serif;
+}
+
+
+/* ==========================================================
+   Form Container
+   ========================================================== */
+
+.treep-container {
+  width: 100%;
+  max-width: 800px;
+
+  margin: 0 auto;
+
+  padding: 25px;
+
+  border-radius: 10px;
+
+  background: #fff;
+
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.treep-header {
+  margin-bottom: 20px;
+
+  padding-bottom: 10px;
+
+  border-bottom: 2px solid #3498db;
+
+  text-align: center;
+
+  h1 {
+    margin: 0;
+
+    color: #3498db;
+
+    font-size: 24px;
+    font-weight: 600;
+  }
+}
+
+
+/* ==========================================================
+   Alerts
+   ========================================================== */
+
+.alert {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  padding: 12px 40px 12px 14px;
+
+  margin-bottom: 18px;
+
+  border-radius: 5px;
+
+  font-size: 13px;
+
+  button {
+    position: absolute;
+
+    top: 50%;
+    right: 10px;
+
+    transform: translateY(-50%);
+
+    border: 0;
+
+    background: transparent;
+
+    color: inherit;
+
+    font-size: 20px;
+
+    cursor: pointer;
+  }
+}
+
+.alert-error {
+  border: 1px solid #fecaca;
+
+  background: #fee2e2;
+
+  color: #991b1b;
+}
+
+.alert-success {
+  border: 1px solid #bbf7d0;
+
+  background: #dcfce7;
+
+  color: #166534;
+}
+
+
+/* ==========================================================
+   Form
+   ========================================================== */
+
+.treep-form {
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+.form-group label {
+  display: block;
+
+  color: #2c3e50;
+
+  font-size: 13px;
+
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+
+  height: 42px;
+
+  padding: 0 12px;
+
+  border: 1px solid #ddd;
+
+  border-radius: 5px;
+
+  outline: none;
+
+  background: #fff;
+
+  color: #2c3e50;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #3498db;
+
+  box-shadow:
+    0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+
+/* ==========================================================
+   Receipt
+   ========================================================== */
+
+.receipt-section {
+  width: 100%;
+  max-width: 800px;
+
+  margin: 25px auto 0;
+
+  h2 {
+    margin: 0 0 12px;
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+    color: #2c3e50;
+  }
+}
+
+.receipt {
+  width: 100%;
+
+  padding: 25px;
+
+  border: 1px solid #ccc;
+
+  border-radius: 5px;
+
+  background: #fff;
+
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+/* ==========================================================
+   Receipt Header
+   ========================================================== */
+
+.receipt-header {
+  margin-bottom: 15px;
+
+  text-align: center;
+
+  font-size: 12px;
+
+  p {
+    margin: 5px 0;
+  }
+}
+
+.logo-container {
+  margin-bottom: 10px;
+
+  img {
+    display: block;
+
+    max-width: 70%;
+
+    max-height: 90px;
+
+    width: auto;
+    height: auto;
+
+    margin: 0 auto;
+  }
+}
+
+.owner-name {
+  font-weight: 600;
+
+  color: #2c3e50;
+}
+
+.divider {
+  margin: 10px 0;
+
+  border-bottom: 1px dashed #000;
+}
+
+
+/* ==========================================================
+   Receipt Details
+   ========================================================== */
+
+.receipt-details {
+  font-size: 13px;
+}
+
+.bill-row {
+  display: grid;
+
+  grid-template-columns: auto auto auto auto;
+
+  align-items: center;
+
+  column-gap: 8px;
+
+  margin-bottom: 12px;
+
+  padding-bottom: 10px;
+
+  border-bottom: 1px solid #eee;
+}
+
+.bill-row strong {
+  margin-right: auto;
+}
+
+.detail-row {
+  display: flex;
+
+  gap: 10px;
+
+  margin-bottom: 8px;
+
+  line-height: 1.5;
+}
+
+.detail-row span {
+  min-width: 145px;
+
+  font-weight: 400;
+}
+
+.detail-row strong {
+  color: #2c3e50;
+
+  word-break: break-word;
+}
+
+
+/* ==========================================================
+   Receipt Footer
+   ========================================================== */
+
+.receipt-footer {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-end;
+
+  gap: 30px;
+
+  margin-top: 25px;
+
+  font-size: 12px;
+}
+
+.receipt-footer > div:first-child {
+  width: 160px;
+
+  padding-top: 5px;
+
+  border-top: 1px solid #000;
+
+  text-align: center;
+}
+
+.signature {
+  width: 200px;
+
+  padding-top: 5px;
+
+  border-top: 1px solid #000;
+
+  text-align: center;
+}
+
+
+/* ==========================================================
+   Actions
+   ========================================================== */
+
+.treep-actions {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  margin: 20px auto;
+
+  max-width: 800px;
+}
+
+.action-btn {
+  min-width: 150px;
+
+  padding: 12px 20px;
+
+  border: 0;
+
+  border-radius: 5px;
+
+  color: #fff;
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.action-btn:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+.print-btn {
+  background: #3498db;
+}
+
+.print-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.save-btn {
+  background: #27ae60;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #229954;
+}
+
+
+/* ==========================================================
+   Loading
+   ========================================================== */
+
+.loading-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.5);
+
+  backdrop-filter: blur(5px);
+}
+
+.loading-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 15px 20px;
+
+  border-radius: 7px;
+
+  background: #fff;
+
+  color: #2c3e50;
+
+  font-size: 13px;
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  width: 28px;
+
+  height: 28px;
+
+  border: 4px solid #f3f3f3;
+
+  border-top-color: #3498db;
+
+  border-radius: 50%;
+
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+
+
+/* ==========================================================
+   Responsive
+   ========================================================== */
+
+@media (max-width: 700px) {
+
+  .treep-page {
+    padding: 15px;
+  }
+
+  .treep-container {
+    padding: 18px;
+  }
+
+  .treep-form {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt {
+    padding: 18px;
+  }
+
+  .bill-row {
+    grid-template-columns: auto auto;
+
+    row-gap: 5px;
+  }
+
+  .detail-row {
+    flex-direction: column;
+
+    gap: 2px;
+  }
+
+  .detail-row span {
+    min-width: 0;
+  }
+
+  .receipt-footer {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .receipt-footer > div:first-child,
+  .signature {
+    width: 200px;
+  }
+
+  .treep-actions {
+    flex-direction: column;
+
+    padding: 0 15px;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+}
+
+
+/* ==========================================================
+   Print
+   ========================================================== */
+
+@media print {
+
+  @page {
+    size: A4;
+
+    margin: 10mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .treep-page {
+    padding: 0;
+
+    background: #fff;
+  }
+
+  .treep-container,
+  .treep-actions,
+  .receipt-section > h2 {
+    display: none !important;
+  }
+
+  .receipt-section {
+    display: block;
+
+    max-width: none;
+
+    width: 100%;
+
+    margin: 0;
+  }
+
+  .receipt {
+    width: 100%;
+
+    padding: 15px;
+
+    border: 1px solid #000;
+
+    box-shadow: none;
+  }
+
+  .loading-overlay {
+    display: none !important;
+  }
+}

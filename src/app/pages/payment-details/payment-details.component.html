@@ -1,0 +1,158 @@
+<main class="details-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">CUSTOMER ACCOUNT</span>
+      <h1>{{ customerName }}</h1>
+      <p class="page-subtitle">Billed work and payment history for this customer.</p>
+    </div>
+    <div class="header-actions">
+      <button class="secondary-button" type="button" [disabled]="loading" (click)="loadDetails()">
+        <span aria-hidden="true">↻</span>
+        Refresh
+      </button>
+      <a class="back-button" routerLink="/payments">Back to Payments</a>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      @if (customerName) {
+        <button class="retry-button" type="button" (click)="loadDetails()">Retry</button>
+      }
+    </div>
+  }
+
+  @if (loading) {
+    <div class="loading-card" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading customer payment report…
+    </div>
+  } @else if (!errorMessage) {
+    <section class="summary-grid" aria-label="Customer account totals">
+      <article class="summary-card">
+        <span class="summary-icon billed-icon" aria-hidden="true">B</span>
+        <div><strong>{{ formatAmount(totalBilled) }}</strong><span>Total Payment</span></div>
+      </article>
+      <article class="summary-card">
+        <span class="summary-icon paid-icon" aria-hidden="true">₹</span>
+        <div><strong>{{ formatAmount(totalPaid) }}</strong><span>Total Paid</span></div>
+      </article>
+      <article class="summary-card" [class.due-credit]="dueAmount < 0">
+        <span class="summary-icon due-icon" aria-hidden="true">D</span>
+        <div><strong>{{ formatAmount(dueAmount) }}</strong><span>Due Amount</span></div>
+      </article>
+    </section>
+
+    <section class="report-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MACHINE ACTIVITY</span>
+          <h2>Machine Report</h2>
+        </div>
+        <span class="record-count">{{ machineBills.length }} records</span>
+      </div>
+      @if (machineBills.length === 0) {
+        <div class="empty-state">No machine bills found for this customer.</div>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Date</th><th>Customer Name</th><th>Machine Number</th>
+              <th>Total Hours</th><th>Rate</th><th>Total Payment</th>
+            </tr></thead>
+            <tbody>
+              @for (bill of machineBills; track bill.id) {
+                <tr>
+                  <td><span class="record-id">#{{ bill.id }}</span></td>
+                  <td>{{ bill.date || '—' }}</td>
+                  <td>{{ bill.customer_name || customerName }}</td>
+                  <td><strong>{{ bill.v_number || '—' }}</strong></td>
+                  <td>{{ bill.total ?? '—' }}</td>
+                  <td>{{ bill.end_reading ?? '—' }}</td>
+                  <td class="amount">{{ formatAmount(bill.total_payment) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot><tr>
+              <td colspan="6">Machine report total</td>
+              <td>{{ formatAmount(machineBillsTotal) }}</td>
+            </tr></tfoot>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="report-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">DUMPER ACTIVITY</span>
+          <h2>Dumper Payment</h2>
+        </div>
+        <span class="record-count">{{ dumperBills.length }} records</span>
+      </div>
+      @if (dumperBills.length === 0) {
+        <div class="empty-state">No dumper bills found for this customer.</div>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Date</th><th>Customer Name</th><th>Dumper Number</th>
+              <th>Trip / Brass</th><th>Rate</th><th>Total Payment</th>
+            </tr></thead>
+            <tbody>
+              @for (bill of dumperBills; track bill.id) {
+                <tr>
+                  <td><span class="record-id">#{{ bill.id }}</span></td>
+                  <td>{{ bill.date || '—' }}</td>
+                  <td>{{ bill.customer_name || customerName }}</td>
+                  <td><strong>{{ bill.v_number || '—' }}</strong></td>
+                  <td>{{ bill.total ?? '—' }}</td>
+                  <td>{{ bill.rate ?? '—' }}</td>
+                  <td class="amount">{{ formatAmount(bill.total_payment) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot><tr>
+              <td colspan="6">Dumper report total</td>
+              <td>{{ formatAmount(dumperBillsTotal) }}</td>
+            </tr></tfoot>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="report-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">COLLECTION HISTORY</span>
+          <h2>Payment History</h2>
+        </div>
+        <span class="record-count">{{ payments.length }} records</span>
+      </div>
+      @if (payments.length === 0) {
+        <div class="empty-state">No payments found for this customer.</div>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Date</th><th>Customer Name</th><th>Paid Amount</th></tr></thead>
+            <tbody>
+              @for (payment of payments; track payment.id) {
+                <tr>
+                  <td><span class="record-id">#{{ payment.id }}</span></td>
+                  <td>{{ payment.payment_date || '—' }}</td>
+                  <td><strong>{{ payment.customerName || customerName }}</strong></td>
+                  <td class="amount">{{ formatAmount(payment.payment) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot><tr>
+              <td colspan="3">Payment history total</td>
+              <td>{{ formatAmount(totalPaid) }}</td>
+            </tr></tfoot>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</main>

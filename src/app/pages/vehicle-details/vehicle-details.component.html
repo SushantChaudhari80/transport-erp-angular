@@ -1,0 +1,278 @@
+<main class="machine-page">
+  <header class="page-heading">
+    <div>
+      <span class="eyebrow">FLEET MANAGEMENT</span>
+      <h1>Machine and Driver Details</h1>
+    </div>
+    <a class="back-button" routerLink="/vehicles">Back to Vehicles</a>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success message" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Machine and driver information">
+    <article class="summary-card machine-card">
+      <span class="card-label">Machine Number</span>
+      <h2>{{ machineNumber }}</h2>
+      <span class="machine-type">{{ vehicleType || 'Vehicle' }}</span>
+    </article>
+
+    <article class="summary-card drivers-card">
+      <div class="driver-card-heading">
+        <div>
+          <span class="card-label">Related Drivers</span>
+          <h2>Assigned to this machine</h2>
+        </div>
+        @if (drivers.length < 2) {
+          <button type="button" class="primary-button compact-button" (click)="openAssignDriverModal()">
+            + Add Driver
+          </button>
+        }
+      </div>
+
+      @if (loadingDrivers) {
+        <p class="muted-text">Loading drivers…</p>
+      } @else if (drivers.length === 0) {
+        <p class="muted-text">No drivers assigned.</p>
+      } @else {
+        <div class="driver-list">
+          @for (driver of drivers; track driver.id) {
+            <div class="driver-row">
+              <span class="driver-avatar" aria-hidden="true">{{ driver.driverName.charAt(0) || '?' }}</span>
+              <span class="driver-name">{{ driver.driverName }}</span>
+              <button
+                type="button"
+                class="remove-button"
+                [disabled]="removingDriverId !== null"
+                (click)="removeDriver(driver)"
+              >
+                {{ removingDriverId === driver.id ? 'Removing…' : 'Remove' }}
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </article>
+  </section>
+
+  @if (showReadingsTable) {
+    <section class="readings-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MACHINE ACTIVITY</span>
+          <h2>Machine Reading Table</h2>
+        </div>
+        <span class="record-count">{{ readings.length }} records</span>
+      </div>
+
+      @if (loadingReadings) {
+        <div class="table-message" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          Loading machine readings…
+        </div>
+      } @else if (readings.length === 0) {
+        <div class="table-message empty-message">No readings found for this machine.</div>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Start Reading</th>
+                <th>End Reading</th>
+                <th>Total Hours</th>
+                <th>Maintenance</th>
+                <th>Diesel</th>
+                <th>Updated By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reading of readings; track reading.id) {
+                <tr
+                  class="reading-row"
+                  tabindex="0"
+                  (click)="openReading(reading)"
+                  (keydown.enter)="openReading(reading)"
+                  (keydown.space)="$event.preventDefault(); openReading(reading)"
+                  [attr.aria-label]="'Edit machine reading ' + reading.id"
+                >
+                  <td><span class="reading-id">{{ reading.id }}</span></td>
+                  <td>{{ reading.date || '—' }}</td>
+                  <td>{{ reading.startReading ?? '—' }}</td>
+                  <td>{{ reading.endReading ?? '—' }}</td>
+                  <td>{{ calculateTotalHours(reading) }}</td>
+                  <td>{{ reading.maintenance || '—' }}</td>
+                  <td>{{ reading.diesel ?? '—' }}</td>
+                  <td>{{ reading.driverName || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="table-hint">Select a row to view and update its reading.</p>
+      }
+    </section>
+  } @else {
+    <section class="readings-card dumper-note">
+      <span class="note-icon" aria-hidden="true">i</span>
+      <p>Machine readings are not displayed for Dumper vehicles.</p>
+    </section>
+  }
+</main>
+
+@if (showAssignDriverModal) {
+  <div class="overlay" (click)="closeAssignDriverModal()">
+    <section
+      class="dialog assign-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assignDriverTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">MACHINE {{ machineNumber }}</span>
+          <h2 id="assignDriverTitle">Assign Driver</h2>
+        </div>
+        <button type="button" class="close-button" aria-label="Close" (click)="closeAssignDriverModal()">×</button>
+      </header>
+      <div class="dialog-body">
+        <label for="driverList">Driver Name</label>
+        @if (loadingDriverOptions) {
+          <p class="muted-text">Loading available drivers…</p>
+        } @else {
+          <select id="driverList" [(ngModel)]="selectedDriverId">
+            <option value="">Select a driver</option>
+            @for (driver of availableDrivers; track driver.id) {
+              <option [value]="driver.id">{{ driver.driverName }}</option>
+            }
+          </select>
+        }
+      </div>
+      <footer class="dialog-footer">
+        <button type="button" class="secondary-button" [disabled]="assigningDriver" (click)="closeAssignDriverModal()">Cancel</button>
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="!selectedDriverId || loadingDriverOptions || assigningDriver"
+          (click)="assignDriver()"
+        >
+          {{ assigningDriver ? 'Assigning…' : 'Assign Driver' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (showReadingModal) {
+  <div class="overlay reading-overlay" (click)="closeReadingModal()">
+    <section
+      class="dialog reading-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="readingTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">MACHINE {{ machineNumber }}</span>
+          <h2 id="readingTitle">Update Machine Reading</h2>
+        </div>
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Close"
+          [disabled]="savingReading"
+          (click)="closeReadingModal()"
+        >×</button>
+      </header>
+
+      @if (loadingReadingDetails) {
+        <div class="table-message"><span class="spinner" aria-hidden="true"></span>Loading reading…</div>
+      } @else if (readingError) {
+        <div class="alert alert-error reading-alert" role="alert">{{ readingError }}</div>
+      } @else if (readingDetails) {
+        <form class="reading-form" (ngSubmit)="saveReading()">
+          <div class="image-fields">
+            <div class="image-field">
+              <label for="startReading">Start Reading Image</label>
+              @if (readingDetails.startReading) {
+                <button type="button" class="image-button" (click)="openImagePreview(readingDetails.startReading.toString())">
+                  <img [src]="toImageUrl(readingDetails.startReading.toString())" alt="Start reading" />
+                  <span>View image</span>
+                </button>
+              } @else {
+                <span class="image-placeholder">No image available</span>
+              }
+              <label class="field-label" for="startReading">Start Reading</label>
+              <input id="startReading" name="startReading" type="text" [(ngModel)]="readingForm.startReading" />
+            </div>
+
+            <div class="image-field">
+              <label for="endReading">End Reading Image</label>
+              @if (readingDetails.endReading) {
+                <button type="button" class="image-button" (click)="openImagePreview(readingDetails.endReading.toString())">
+                  <img [src]="toImageUrl(readingDetails.endReading.toString())" alt="End reading" />
+                  <span>View image</span>
+                </button>
+              } @else {
+                <span class="image-placeholder">No image available</span>
+              }
+              <label class="field-label" for="endReading">End Reading</label>
+              <input id="endReading" name="endReading" type="text" [(ngModel)]="readingForm.endReading" />
+            </div>
+
+            <div class="image-field">
+              <label for="diesel">Diesel Image</label>
+              @if (readingDetails.disel) {
+                <button
+                  type="button"
+                  class="image-button"
+                  (click)="openImagePreview()"
+                >
+                  <img
+                    [src]="toImageUrl(readingDetails.disel)"
+                    alt="Diesel"
+                  />
+                  <span>View image</span>
+                </button>
+              } @else {
+                <span class="image-placeholder">No image available</span>
+              }
+              <label class="field-label" for="diesel">Diesel</label>
+              <input id="diesel" name="diesel" type="text" [(ngModel)]="readingForm.diesel" />
+            </div>
+          </div>
+
+          <footer class="dialog-footer">
+            <button type="button" class="secondary-button" [disabled]="savingReading" (click)="closeReadingModal()">Cancel</button>
+            <button type="submit" class="primary-button" [disabled]="savingReading">
+              {{ savingReading ? 'Updating…' : 'Update Reading' }}
+            </button>
+          </footer>
+        </form>
+      } @else {
+        <div class="table-message">No reading details were returned.</div>
+      }
+    </section>
+  </div>
+}
+
+@if (showImagePreview) {
+  <div class="image-overlay" (click)="closeImagePreview()">
+    <button type="button" class="image-close" aria-label="Close image preview" (click)="closeImagePreview()">×</button>
+    <img [src]="imagePreviewUrl" alt="Reading image preview" (click)="$event.stopPropagation()" />
+  </div>
+}

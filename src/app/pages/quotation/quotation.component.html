@@ -1,0 +1,474 @@
+<div class="quotation-page">
+
+  <!-- =========================================================
+       Quotation Form
+       ========================================================= -->
+
+  <div class="quotation-container">
+
+    <div class="quotation-header">
+
+      <h1>
+        Quotation
+      </h1>
+
+    </div>
+
+
+    @if (errorMessage) {
+
+      <div class="error-message">
+
+        {{ errorMessage }}
+
+        <button
+          type="button"
+          (click)="errorMessage = ''"
+        >
+          ×
+        </button>
+
+      </div>
+
+    }
+
+
+    <form
+      class="quotation-form"
+      (submit)="$event.preventDefault()"
+    >
+
+      <!-- Customer -->
+
+      <div class="form-group">
+
+        <label for="customer">
+          Select Customer
+        </label>
+
+        <select
+          id="customer"
+          name="customer"
+          [(ngModel)]="selectedCustomer"
+          (ngModelChange)="onCustomerChange()"
+        >
+
+          <option value="">
+            Select a Customer
+          </option>
+
+          @for (
+            customer of customers;
+            track customer.id ?? customer.address
+          ) {
+
+            <option
+              [value]="customer.address"
+            >
+              {{ customer.customer_name || '-' }}
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+
+      <!-- Vehicle -->
+
+      <div class="form-group">
+
+        <label for="vehicle">
+          Select Vehicle
+        </label>
+
+        <select
+          id="vehicle"
+          name="vehicle"
+          [(ngModel)]="selectedVehicle"
+        >
+
+          <option value="">
+            Select a Vehicle
+          </option>
+
+          @for (
+            vehicle of vehicles;
+            track vehicle.id
+          ) {
+
+            <option [value]="vehicle.id">
+
+              {{ getVehicleNumber(vehicle) }}
+
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+
+      <!-- Material -->
+
+      <div class="form-group">
+
+        <label for="material">
+          Select Material
+        </label>
+
+        <select
+          id="material"
+          name="material"
+          [(ngModel)]="selectedMaterial"
+          (ngModelChange)="onMaterialChange()"
+        >
+
+          @for (
+            material of materials;
+            track material
+          ) {
+
+            <option [value]="material">
+              {{ material }}
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+
+      <!-- Quantity -->
+
+      <div class="form-group">
+
+        <label for="quantity">
+          Qty
+        </label>
+
+        <input
+          id="quantity"
+          name="quantity"
+          type="number"
+          min="0"
+          step="any"
+          [(ngModel)]="quantity"
+          (ngModelChange)="onQuantityOrRateChange()"
+          placeholder="Enter quantity"
+        />
+
+      </div>
+
+
+      <!-- Rate -->
+
+      <div class="form-group">
+
+        <label for="rate">
+          Rate
+        </label>
+
+        <input
+          id="rate"
+          name="rate"
+          type="number"
+          min="0"
+          step="any"
+          [(ngModel)]="rate"
+          (ngModelChange)="onQuantityOrRateChange()"
+          placeholder="Enter rate"
+        />
+
+      </div>
+
+
+      <!-- Calculate -->
+
+      <button
+        type="button"
+        class="calculate-btn"
+        (click)="calculateTotal()"
+      >
+        Calculate Total
+      </button>
+
+    </form>
+
+  </div>
+
+
+  <!-- =========================================================
+       Quotation Preview
+       ========================================================= -->
+
+  <div
+    class="quotation-preview"
+    id="quotation-summary"
+  >
+
+    <h2>
+      Quotation
+    </h2>
+
+
+    <div class="receipt">
+
+      <!-- Header -->
+
+      <div class="receipt-header">
+
+        <div class="logo-container">
+
+          <img
+            src="assets/img/logo.png"
+            alt="Logo"
+          />
+
+        </div>
+
+
+        <p class="company-name">
+          {{ customerDetails?.name || 'Loading' }},
+          {{ customerDetails?.mobile || '' }}
+        </p>
+
+
+        <p>
+          {{ customerDetails?.address || '' }}
+        </p>
+
+
+        <p>
+          Sand, Bricks, Crush Sand, Cement, Steel, Soil
+        </p>
+
+        <p>
+          And all building Material
+        </p>
+
+      </div>
+
+
+      <div class="divider"></div>
+
+
+      <!-- Customer Details -->
+
+      <div class="receipt-details">
+
+        <div class="customer-details">
+
+          <div>
+
+            <strong>
+              Customer Name:
+            </strong>
+
+            <span>
+              {{ selectedCustomerName }}
+            </span>
+
+          </div>
+
+
+          <div>
+
+            <strong>
+              Address:
+            </strong>
+
+            <span>
+              {{ selectedCustomerAddress || '-' }}
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="bill-details">
+
+          <div>
+
+            <strong>
+              Bill No:
+            </strong>
+
+            <span>
+              {{ billNo }}
+            </span>
+
+          </div>
+
+
+          <div>
+
+            <strong>
+              Date:
+            </strong>
+
+            <span>
+              {{ quotationDate }}
+            </span>
+
+          </div>
+
+
+          <div>
+
+            <strong>
+              GST NO:
+            </strong>
+
+            <span>
+              {{ customerDetails?.gstNo || '-' }}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Material Table -->
+
+      <table class="quotation-table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Sr No
+            </th>
+
+            <th>
+              Item Details
+            </th>
+
+            <th>
+              Qty
+            </th>
+
+            <th>
+              Rate
+            </th>
+
+            <th>
+              Amount
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @for (
+            row of materialRows;
+            track row.name;
+            let i = $index
+          ) {
+
+            <tr>
+
+              <td>
+                {{ i + 1 }}.
+              </td>
+
+              <td>
+                {{ row.name }}
+              </td>
+
+              <td>
+                {{ row.qty || '' }}
+              </td>
+
+              <td>
+                {{ row.rate || '' }}
+              </td>
+
+              <td>
+                {{ formatAmount(row.amount) }}
+              </td>
+
+            </tr>
+
+          }
+
+
+          <!-- Total -->
+
+          <tr class="total-row">
+
+            <td
+              colspan="4"
+            >
+              Total Amount
+            </td>
+
+            <td>
+              {{ formatAmount(totalAmount) }}
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+
+      <!-- Signature -->
+
+      <div class="signature-section">
+
+        <div>
+          Recipient sign
+        </div>
+
+        <div class="signature-line">
+          For {{ customerDetails?.bussinessName || '' }}
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       Actions
+       ========================================================= -->
+
+  <div class="quotation-actions">
+
+    <button
+      type="button"
+      class="print-btn"
+      (click)="printQuotation()"
+    >
+      Print
+    </button>
+
+    <!--
+    Enable this when /api/treep/add is ready.
+
+    <button
+      type="button"
+      class="save-btn"
+      (click)="saveQuotation()"
+    >
+      Save
+    </button>
+    -->
+
+  </div>
+
+</div>

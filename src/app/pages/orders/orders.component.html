@@ -1,0 +1,892 @@
+<div class="orders-page">
+
+  <!-- =========================================================
+       Header
+       ========================================================= -->
+
+  <div class="page-header">
+
+    <div>
+      <h1>Orders</h1>
+      <p class="page-subtitle">
+        Manage and monitor transport orders
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="openCreateOrderModal()"
+      [disabled]="orderCreatedWithoutPayment"
+    >
+      <span class="btn-icon">+</span>
+      Add New Order
+    </button>
+
+  </div>
+
+
+  <!-- =========================================================
+       Messages
+       ========================================================= -->
+
+  @if (successMessage) {
+    <div class="alert alert-success">
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      {{ errorMessage }}
+
+      <button
+        type="button"
+        class="alert-close"
+        (click)="errorMessage = ''"
+      >
+        ×
+      </button>
+    </div>
+  }
+
+
+  <!-- =========================================================
+       Filters
+       ========================================================= -->
+
+  <section class="filters-card">
+
+    <div class="filter-group">
+
+      <label for="status">
+        Status
+      </label>
+
+      <select
+        id="status"
+        [(ngModel)]="selectedStatus"
+        [disabled]="loading"
+      >
+        <option value="">
+          All Status
+        </option>
+
+        @for (status of statusOptions; track status) {
+          <option [value]="status">
+            {{ status }}
+          </option>
+        }
+      </select>
+
+    </div>
+
+
+    <div class="filter-group">
+
+      <label for="fromDate">
+        From Date
+      </label>
+
+      <input
+        id="fromDate"
+        type="date"
+        [(ngModel)]="fromDate"
+        [max]="toDate || null"
+        [disabled]="loading"
+      />
+
+    </div>
+
+
+    <div class="filter-group">
+
+      <label for="toDate">
+        To Date
+      </label>
+
+      <input
+        id="toDate"
+        type="date"
+        [(ngModel)]="toDate"
+        [min]="fromDate || null"
+        [disabled]="loading"
+      />
+
+    </div>
+
+
+    <div class="filter-actions">
+
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="applyFilters()"
+        [disabled]="loading"
+      >
+        Apply Filters
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="clearFilters()"
+        [disabled]="loading"
+      >
+        Clear
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================================================
+       Orders Table
+       ========================================================= -->
+
+  <section class="table-card">
+
+    <div class="table-header">
+
+      <div>
+        <h2>Order List</h2>
+        <span class="record-count">
+          {{ filteredOrders.length }} orders
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        (click)="loadOrders()"
+        [disabled]="loading"
+        title="Refresh"
+      >
+        ↻
+      </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Order ID</th>
+            <th>Order Date</th>
+            <th>Customer Name</th>
+            <th>Advance Payment</th>
+            <th>Status</th>
+            <th>Address</th>
+            <th>Vehicle Numbers</th>
+            <th>Delivery Date</th>
+            <th class="actions-column">
+              Actions
+            </th>
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @if (!loading && filteredOrders.length === 0) {
+
+            <tr>
+              <td
+                colspan="9"
+                class="empty-state"
+              >
+                <div class="empty-icon">
+                  📦
+                </div>
+
+                <h3>No orders found</h3>
+
+                <p>
+                  There are no orders matching your criteria.
+                </p>
+              </td>
+            </tr>
+
+          }
+
+
+          @for (order of filteredOrders; track order.id) {
+
+            <tr>
+
+              <td>
+                <span class="order-id">
+                  #{{ order.id }}
+                </span>
+              </td>
+
+
+              <td>
+                {{ formatDate(order.order_date) }}
+              </td>
+
+
+              <td>
+                <span class="customer-name">
+                  {{ order.customer_name || '-' }}
+                </span>
+              </td>
+
+
+              <td>
+                {{ formatAmount(order.advance) }}
+              </td>
+
+
+              <td>
+
+                <span
+                  class="status-badge"
+                  [ngClass]="getStatusClass(order.status)"
+                >
+                  {{ order.status || 'Unknown' }}
+                </span>
+
+              </td>
+
+
+              <td>
+
+                <span
+                  class="address"
+                  [title]="order.address || ''"
+                >
+                  {{ order.address || '-' }}
+                </span>
+
+              </td>
+
+
+              <td>
+
+                @if (order.machins) {
+
+                  <div class="vehicle-list">
+
+                    @for (
+                      vehicle of order.machins.split(',');
+                      track vehicle
+                    ) {
+
+                      <span class="vehicle-tag">
+                        {{ vehicle.trim() }}
+                      </span>
+
+                    }
+
+                  </div>
+
+                } @else {
+
+                  <span class="muted">
+                    No vehicle
+                  </span>
+
+                }
+
+              </td>
+
+
+              <td>
+                {{ formatDate(order.deliveryDate) }}
+              </td>
+
+
+              <td class="actions">
+
+                <button
+                  type="button"
+                  class="action-button view"
+                  (click)="viewOrder(order)"
+                  title="View Order"
+                >
+                  View
+                </button>
+
+                <button
+                  type="button"
+                  class="action-button edit"
+                  (click)="updateOrderDetails(order)"
+                  title="Update Order"
+                >
+                  Update
+                </button>
+
+                <!-- <button
+                  type="button"
+                  class="action-button delete"
+                  (click)="deleteOrder(order)"
+                  title="Delete Order"
+                >
+                  Delete
+                </button> -->
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</div>
+
+@if (showCreateOrderModal) {
+  <div
+    class="modal-backdrop"
+    (click)="closeCreateOrderModal()">
+    <section
+      class="modal create-order-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="createOrderTitle"
+      (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div>
+          <span class="modal-label">ORDERS</span>
+          <h2 id="createOrderTitle">Add New Order</h2>
+        </div>
+        <button
+          type="button"
+          class="modal-close"
+          aria-label="Close add order form"
+          [disabled]="creatingOrder"
+          (click)="closeCreateOrderModal()">
+          ×
+        </button>
+      </header>
+
+      <form (ngSubmit)="submitCreateOrder()">
+        <div class="modal-body">
+          @if (createOrderError) {
+            <div class="alert alert-error" role="alert">{{ createOrderError }}</div>
+          }
+
+          @if (orderCreatedWithoutPayment) {
+            <div class="alert alert-error" role="alert">
+              The order was created. Do not submit again; close this form and contact support to reconcile the advance payment.
+            </div>
+          }
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="newOrderCustomer">Customer Name</label>
+              <input
+                id="newOrderCustomer"
+                name="customer_name"
+                type="text"
+                autocomplete="organization"
+                placeholder="Enter customer name"
+                [(ngModel)]="createOrderForm.customer_name"
+                [disabled]="creatingOrder"
+                required>
+            </div>
+
+            <div class="form-field">
+              <label for="newOrderAdvance">Advance Payment</label>
+              <input
+                id="newOrderAdvance"
+                name="advance"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter advance amount"
+                [(ngModel)]="createOrderForm.advance"
+                [disabled]="creatingOrder"
+                required>
+            </div>
+
+            <div class="form-field full-width">
+              <label for="newOrderAddress">Customer Address</label>
+              <input
+                id="newOrderAddress"
+                name="address"
+                type="text"
+                autocomplete="street-address"
+                placeholder="Enter customer address"
+                [(ngModel)]="createOrderForm.address"
+                [disabled]="creatingOrder"
+                required>
+            </div>
+          </div>
+
+          <div class="vehicle-section">
+            <div class="section-heading">
+              <div>
+                <h3>Assign Vehicles</h3>
+                <span>Select the vehicles for this order</span>
+              </div>
+              <span class="selected-count">{{ createSelectedVehicles.size }} selected</span>
+            </div>
+
+            @if (loadingCreateVehicles) {
+              <p class="vehicle-loading" role="status">Loading vehicles...</p>
+            } @else if (vehicles.length === 0) {
+              <div class="vehicle-empty">No vehicles available. You can still add the order.</div>
+            } @else {
+              <div class="vehicle-grid">
+                @for (vehicle of vehicles; track vehicle.machine_number) {
+                  <label
+                    class="vehicle-checkbox"
+                    [class.selected]="isCreateVehicleSelected(vehicle.machine_number)">
+                    <input
+                      type="checkbox"
+                      [checked]="isCreateVehicleSelected(vehicle.machine_number)"
+                      [disabled]="creatingOrder"
+                      (change)="toggleCreateVehicle(vehicle.machine_number)">
+                    <span class="checkbox-custom"></span>
+                    <span>{{ vehicle.machine_number }}</span>
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="creatingOrder"
+            (click)="closeCreateOrderModal()">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="creatingOrder || loadingCreateVehicles || orderCreatedWithoutPayment">
+            @if (creatingOrder) {
+              <span class="button-spinner"></span>
+              Saving...
+            } @else {
+              Add Order
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+
+<!-- ===========================================================
+     Global Loading Overlay
+     =========================================================== -->
+
+@if (loading) {
+
+  <div class="loading-overlay">
+
+    <div class="loading-card">
+
+      <div class="spinner"></div>
+
+      <span>
+        Loading...
+      </span>
+
+    </div>
+
+  </div>
+
+}
+
+
+<!-- ===========================================================
+     View Order Modal
+     =========================================================== -->
+
+@if (showViewModal && selectedOrder) {
+
+  <div
+    class="modal-backdrop"
+    (click)="closeViewModal()"
+  >
+
+    <div
+      class="modal"
+      (click)="$event.stopPropagation()"
+    >
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="modal-label">
+            ORDER DETAILS
+          </span>
+
+          <h2>
+            Order #{{ selectedOrder.id }}
+          </h2>
+
+        </div>
+
+        <button
+          type="button"
+          class="modal-close"
+          (click)="closeViewModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="modal-body">
+
+        <div class="details-grid">
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Customer Name
+            </span>
+
+            <span class="detail-value">
+              {{ selectedOrder.customer_name || '-' }}
+            </span>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Order Status
+            </span>
+
+            <span>
+
+              <span
+                class="status-badge"
+                [ngClass]="
+                  getStatusClass(selectedOrder.status)
+                "
+              >
+                {{ selectedOrder.status || '-' }}
+              </span>
+
+            </span>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Delivery Date
+            </span>
+
+            <span class="detail-value">
+              {{ selectedOrder.deliveryDate || '-' }}
+            </span>
+
+          </div>
+
+
+          <div class="detail-item full-width">
+
+            <span class="detail-label">
+              Address
+            </span>
+
+            <span class="detail-value">
+              {{ selectedOrder.address || '-' }}
+            </span>
+
+          </div>
+
+
+          <div class="detail-item full-width">
+
+            <span class="detail-label">
+              Vehicles
+            </span>
+
+            <span class="detail-value">
+              {{ selectedOrder.machins || '-' }}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeViewModal()"
+        >
+          Close
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}
+
+
+<!-- ===========================================================
+     Update Order Modal
+     =========================================================== -->
+
+@if (showUpdateModal && updateOrder) {
+
+  <div
+    class="modal-backdrop"
+    (click)="closeUpdateModal()"
+  >
+
+    <div
+      class="modal update-modal"
+      (click)="$event.stopPropagation()"
+    >
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="modal-label">
+            ORDER MANAGEMENT
+          </span>
+
+          <h2>
+            Update Order #{{ updateOrder.id }}
+          </h2>
+
+        </div>
+
+        <button
+          type="button"
+          class="modal-close"
+          (click)="closeUpdateModal()"
+          [disabled]="saving"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="modal-body">
+
+        <div class="form-grid">
+
+          <!-- Customer -->
+
+          <div class="form-field full-width">
+
+            <label for="customerName">
+              Customer Name
+            </label>
+
+            <input
+              id="customerName"
+              type="text"
+              [(ngModel)]="updateOrder.customer_name"
+              placeholder="Enter customer name"
+            />
+
+          </div>
+
+
+          <!-- Status -->
+
+          <div class="form-field">
+
+            <label for="orderStatus">
+              Order Status
+            </label>
+
+            <select
+              id="orderStatus"
+              [(ngModel)]="updateOrder.status"
+            >
+
+              @for (status of statusOptions; track status) {
+
+                <option [value]="status">
+                  {{ status }}
+                </option>
+
+              }
+
+            </select>
+
+          </div>
+
+
+          <!-- Delivery Date -->
+
+          <div class="form-field">
+
+            <label for="deliveryDate">
+              Delivery Date
+            </label>
+
+            <input
+              id="deliveryDate"
+              type="date"
+              [(ngModel)]="updateOrder.deliveryDate"
+            />
+
+          </div>
+
+
+          <!-- Address -->
+
+          <div class="form-field full-width">
+
+            <label for="customerAddress">
+              Customer Address
+            </label>
+
+            <input
+              id="customerAddress"
+              type="text"
+              [(ngModel)]="updateOrder.address"
+              placeholder="Enter customer address"
+            />
+
+          </div>
+
+        </div>
+
+
+        <!-- Vehicles -->
+
+        <div class="vehicle-section">
+
+          <div class="section-heading">
+
+            <div>
+              <h3>Assign Vehicles</h3>
+
+              <span>
+                Select vehicles for this order
+              </span>
+            </div>
+
+            <span class="selected-count">
+              {{ selectedVehicles.size }} selected
+            </span>
+
+          </div>
+
+
+          @if (vehicles.length === 0) {
+
+            <div class="vehicle-empty">
+              No vehicles available.
+            </div>
+
+          } @else {
+
+            <div class="vehicle-grid">
+
+              @for (
+                vehicle of vehicles;
+                track vehicle.machine_number
+              ) {
+
+                <label
+                  class="vehicle-checkbox"
+                  [class.selected]="
+                    isVehicleSelected(
+                      vehicle.machine_number
+                    )
+                  "
+                >
+
+                  <input
+                    type="checkbox"
+                    [checked]="
+                      isVehicleSelected(
+                        vehicle.machine_number
+                      )
+                    "
+                    (change)="
+                      toggleVehicle(
+                        vehicle.machine_number
+                      )
+                    "
+                  />
+
+                  <span class="checkbox-custom"></span>
+
+                  <span>
+                    {{ vehicle.machine_number }}
+                  </span>
+
+                </label>
+
+              }
+
+            </div>
+
+          }
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeUpdateModal()"
+          [disabled]="saving"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="saveOrder()"
+          [disabled]="saving"
+        >
+
+          @if (saving) {
+            <span class="button-spinner"></span>
+            Saving...
+          } @else {
+            Save Changes
+          }
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}

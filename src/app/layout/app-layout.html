@@ -1,0 +1,235 @@
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
+  @if (mobileMenuOpen()) {
+    <button
+      class="menu-overlay"
+      type="button"
+      aria-label="Close navigation menu"
+      (click)="closeMobileMenu()">
+    </button>
+  }
+
+  <aside
+    class="sidebar"
+    [class.mobile-open]="mobileMenuOpen()">
+    <a class="brand" routerLink="/dashboard" (click)="closeMobileMenu()">
+      <img class="brand-logo" src="/img/project_logo.png" alt="">
+      <span class="brand-copy">
+        <strong>Transport ERP</strong>
+        <small>Fleet &amp; Operations</small>
+      </span>
+    </a>
+
+    <nav class="main-menu" aria-label="Main menu">
+      <p class="menu-heading">Overview</p>
+      <a
+        class="menu-link"
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">D</span>
+        Dashboard
+      </a>
+
+      <p class="menu-heading">Fleet operations</p>
+      <a
+        class="menu-link"
+        routerLink="/orders"
+        routerLinkActive="active"
+        (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">O</span>
+        Orders
+      </a>
+      <a class="menu-link" routerLink="/vehicles" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">V</span>
+        Vehicles
+      </a>
+      <a class="menu-link" routerLink="/drivers" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">D</span>
+        Drivers
+      </a>
+      <div class="submenu-menu">
+        <div class="submenu-menu-heading">
+          <a class="menu-link">
+            <span class="menu-icon" aria-hidden="true">T</span>
+            <span class="menu-link-label">Trips</span>
+          </a>
+          <button
+            class="submenu-toggle"
+            type="button"
+            [attr.aria-expanded]="tripsSubmenuOpen()"
+            aria-controls="trips-submenu"
+            [attr.aria-label]="tripsSubmenuOpen() ? 'Collapse Trips submenu' : 'Expand Trips submenu'"
+            (click)="toggleTripsSubmenu()">
+            {{ tripsSubmenuOpen() ? '−' : '+' }}
+          </button>
+        </div>
+        @if (tripsSubmenuOpen()) {
+          <div class="submenu-items" id="trips-submenu">
+            <a class="submenu-link" routerLink="/trips/billed" routerLinkActive="active" (click)="closeMobileMenu()">
+              <span aria-hidden="true">−</span>
+              Billed Trips
+            </a>
+            <a class="submenu-link" routerLink="/trips/unbilled" routerLinkActive="active" (click)="closeMobileMenu()">
+              <span aria-hidden="true">−</span>
+              Unbilled Trips
+            </a>
+          </div>
+        }
+      </div>
+      <div class="submenu-menu">
+        <div class="submenu-menu-heading">
+          <a
+            class="menu-link"
+            
+            >
+            <span class="menu-icon" aria-hidden="true">M</span>
+            <span class="menu-link-label">Machine Reading</span>
+          </a>
+          <button
+            class="submenu-toggle"
+            type="button"
+            [attr.aria-expanded]="machineReadingSubmenuOpen()"
+            aria-controls="machine-reading-submenu"
+            [attr.aria-label]="machineReadingSubmenuOpen() ? 'Collapse Machine Reading submenu' : 'Expand Machine Reading submenu'"
+            (click)="toggleMachineReadingSubmenu()">
+            {{ machineReadingSubmenuOpen() ? '−' : '+' }}
+          </button>
+        </div>
+        @if (machineReadingSubmenuOpen()) {
+          <div class="submenu-items" id="machine-reading-submenu">
+            <a class="submenu-link" routerLink="/machine-reading/billed" routerLinkActive="active" (click)="closeMobileMenu()">
+              <span aria-hidden="true">−</span>
+              Billed Reading
+            </a>
+            <a class="submenu-link" routerLink="/machine-reading/unbilled" routerLinkActive="active" (click)="closeMobileMenu()">
+              <span aria-hidden="true">−</span>
+              Unbilled Reading
+            </a>
+          </div>
+        }
+      </div>
+      <p class="menu-heading">Utilities</p>
+      <a class="menu-link" routerLink="/quotation" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">Q</span>
+        Quotation Generator
+      </a>
+      <a class="menu-link" routerLink="/trips" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">T</span>
+        Treep Generator
+      </a>
+
+      <p class="menu-heading">Finance &amp; reports</p>
+      <a class="menu-link" routerLink="/diesel" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">F</span>
+        Diesel Report
+      </a>
+      <a class="menu-link" routerLink="/payments" routerLinkActive="active" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">P</span>
+        Payments
+      </a>
+      <a class="menu-link" routerLink="/vouchers" routerLinkActive="active" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">G</span>
+        General Vouchers
+      </a>
+      <a class="menu-link" routerLink="/invoices" routerLinkActive="active" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">I</span>
+        Invoices
+      </a>
+      <a class="menu-link" routerLink="/portfolio" routerLinkActive="active" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">P</span>
+        Portfolio
+      </a>
+      <a class="menu-link" routerLink="/support" routerLinkActive="active" (click)="closeMobileMenu()">
+        <span class="menu-icon" aria-hidden="true">S</span>
+        Incident / Support
+      </a>
+    </nav>
+
+    <footer class="sidebar-footer">© Tanvi Software Solution 2026</footer>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <button
+        class="menu-toggle"
+        type="button"
+        [attr.aria-label]="sidebarCollapsed() ? 'Expand navigation menu' : 'Collapse navigation menu'"
+        [attr.aria-expanded]="!sidebarCollapsed()"
+        (click)="toggleMenu()">
+        ☰
+      </button>
+      <div class="topbar-title">
+        <strong>Transport ERP</strong>
+        <span>Fleet &amp; transport operations</span>
+      </div>
+
+      <div class="profile-menu">
+        <button
+          class="profile-toggle"
+          type="button"
+          aria-label="Open account profile"
+          [attr.aria-expanded]="profileOpen()"
+          (click)="toggleProfile()">
+          @if (customerPicture; as picture) {
+            <img class="profile-avatar" [src]="picture" alt="">
+          } @else {
+            <span class="profile-avatar profile-avatar-fallback" aria-hidden="true">
+              {{ customerInitial }}
+            </span>
+          }
+          <span class="profile-toggle-name">{{ customer()?.name || 'Account' }}</span>
+          <span class="profile-chevron" aria-hidden="true"></span>
+        </button>
+
+        @if (profileOpen()) {
+          <section class="profile-panel" aria-label="Account details">
+            <header class="profile-panel-header">
+              @if (customerPicture; as picture) {
+                <img class="profile-avatar profile-avatar-large" [src]="picture" alt="">
+              } @else {
+                <span class="profile-avatar profile-avatar-fallback profile-avatar-large" aria-hidden="true">
+                  {{ customerInitial }}
+                </span>
+              }
+              <div>
+                <strong>{{ customer()?.name || 'Account' }}</strong>
+                <span>{{ customer()?.bussinessName || 'Transport ERP account' }}</span>
+              </div>
+            </header>
+
+            <div class="profile-details">
+              @if (profileLoading()) {
+                <p role="status">Loading profile...</p>
+              } @else if (profileError()) {
+                <p class="profile-error" role="alert">{{ profileError() }}</p>
+              } @else {
+                @if (customer()?.mobile) {
+                  <p><span>Mobile</span><strong>{{ customer()?.mobile }}</strong></p>
+                }
+                @if (customer()?.address) {
+                  <p><span>Address</span><strong>{{ customer()?.address }}</strong></p>
+                }
+                @if (customer()?.gstNo) {
+                  <p><span>GST number</span><strong>{{ customer()?.gstNo }}</strong></p>
+                }
+                @if (!customer()?.mobile && !customer()?.address && !customer()?.gstNo) {
+                  <p class="profile-muted">No additional account details available.</p>
+                }
+              }
+            </div>
+
+            <button class="logout-button" type="button" (click)="logout()">
+              <span aria-hidden="true">↪</span>
+              Log out
+            </button>
+          </section>
+        }
+      </div>
+    </header>
+
+    <section class="page-content">
+      <router-outlet />
+    </section>
+  </main>
+</div>

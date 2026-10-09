@@ -1,0 +1,192 @@
+<main class="payments-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FINANCE &amp; REPORTS</span>
+      <h1>Payment History</h1>
+      <p class="page-subtitle">Track customer payments and record incoming amounts.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="openAddModal()">
+      <span aria-hidden="true">+</span>
+      Add Payment
+    </button>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Payment summary">
+    <article class="summary-card">
+      <span class="summary-icon customers-icon" aria-hidden="true">C</span>
+      <div><strong>{{ totalCustomers }}</strong><span>Total Customers</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon received-icon" aria-hidden="true">₹</span>
+      <div><strong>{{ formatAmount(totalReceived) }}</strong><span>Total Payments Received</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon billed-icon" aria-hidden="true">B</span>
+      <div><strong>—</strong><span>Total Billed</span><small>Not provided by payment API</small></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon due-icon" aria-hidden="true">D</span>
+      <div><strong>—</strong><span>Due Amount</span><small>Not provided by payment API</small></div>
+    </article>
+  </section>
+
+  <section class="history-card" aria-label="Customer payment history">
+    <div class="history-toolbar">
+      <div>
+        <span class="eyebrow">PAYMENT ACTIVITY</span>
+        <h2>Transactions</h2>
+      </div>
+      <div class="toolbar-actions">
+        <div class="customer-filter">
+          <label class="visually-hidden" for="paymentCustomerFilter">Select customer</label>
+          <select id="paymentCustomerFilter" [(ngModel)]="selectedCustomer" [disabled]="loadingCustomers">
+            <option value="">All customers</option>
+            @for (customer of customers; track customer.customer_name) {
+              <option [value]="customer.customer_name">{{ customer.customer_name }}</option>
+            }
+          </select>
+          @if (selectedCustomer) {
+            <button type="button" class="clear-button" (click)="clearCustomerFilter()">Clear</button>
+          }
+        </div>
+        <label class="search-field">
+          <span class="visually-hidden">Search payments</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search payments..." />
+        </label>
+        <button type="button" class="icon-button" title="Refresh payments" aria-label="Refresh payments"
+          [disabled]="loadingPayments" (click)="loadPayments()">↻</button>
+      </div>
+    </div>
+
+    @if (selectedCustomer) {
+      <div class="filter-note">
+        Showing payment history for <strong>{{ selectedCustomer }}</strong>.
+        <span>Received total: {{ formatAmount(displayedPaymentTotal) }}</span>
+      </div>
+    }
+
+    @if (loadingPayments) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading payments…</div>
+    } @else if (payments.length === 0) {
+      <div class="table-state empty-state">No payments have been recorded.</div>
+    } @else if (filteredPayments.length === 0) {
+      <div class="table-state empty-state">No payments match the selected filters.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Payment ID</th>
+              <th>Date</th>
+              <th>Customer Name</th>
+              <th>Paid Amount</th>
+              <th>Total Due</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of filteredPayments; track payment.id) {
+              <tr>
+                <td><span class="payment-id">#{{ payment.id }}</span></td>
+                <td>{{ payment.payment_date || '—' }}</td>
+                <td><strong>{{ payment.customerName || '—' }}</strong></td>
+                <td class="amount-cell">{{ formatAmount(numericPayment(payment.payment)) }}</td>
+                <td>
+                  @if (payment.totalDue !== undefined && payment.totalDue !== null && payment.totalDue !== '') {
+                    {{ formatAmount(numericPayment(payment.totalDue)) }}
+                  } @else {
+                    <span class="not-available" title="The payments API does not include a due amount">—</span>
+                  }
+                </td>
+                <td>
+                  <button class="view-button" type="button" title="View customer payment report"
+                    [attr.aria-label]="'View payment report for ' + (payment.customerName || 'unknown customer')"
+                    [disabled]="!payment.customerName" (click)="openPaymentDetails(payment)">
+                    <span aria-hidden="true">◉</span>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Visible payments total</td>
+              <td>{{ formatAmount(displayedPaymentTotal) }}</td>
+              <td>—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredPayments.length }} of {{ payments.length }} payments</div>
+    }
+  </section>
+</main>
+
+@if (showAddModal) {
+  <div class="overlay" (click)="closeAddModal()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="addPaymentTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">PAYMENT ENTRY</span>
+          <h2 id="addPaymentTitle">Add Payment</h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Close form" [disabled]="savingPayment"
+          (click)="closeAddModal()">×</button>
+      </header>
+      <form (ngSubmit)="submitPayment()">
+        <div class="dialog-body">
+          @if (modalError) {
+            <div class="alert alert-error" role="alert">{{ modalError }}</div>
+          }
+          <div class="form-field">
+            <label for="paymentCustomer">Select Customer</label>
+            <select id="paymentCustomer" name="customer" [(ngModel)]="modalCustomer" required
+              [disabled]="loadingCustomers">
+              <option value="">{{ loadingCustomers ? 'Loading customers…' : 'Select a customer' }}</option>
+              @for (customer of customers; track customer.customer_name) {
+                <option [value]="customer.customer_name">{{ customer.customer_name }}</option>
+              }
+            </select>
+            @if (!loadingCustomers && customers.length === 0) {
+              <small>No customers are available. Check the orders service.</small>
+            }
+          </div>
+          <div class="form-field">
+            <label for="paymentAmount">Amount</label>
+            <div class="amount-input">
+              <span aria-hidden="true">₹</span>
+              <input id="paymentAmount" name="amount" type="number" min="0.01" step="any"
+                [(ngModel)]="amount" placeholder="Enter payment amount" required />
+            </div>
+          </div>
+        </div>
+        <footer class="dialog-footer">
+          <button class="secondary-button" type="button" [disabled]="savingPayment" (click)="closeAddModal()">Cancel</button>
+          <button class="primary-button" type="submit" [disabled]="savingPayment || loadingCustomers || customers.length === 0">
+            @if (savingPayment) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Saving…
+            } @else {
+              Add Payment
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

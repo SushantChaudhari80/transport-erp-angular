@@ -1,0 +1,191 @@
+<main class="diesel-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FINANCE &amp; REPORTS</span>
+      <h1>Diesel Consumption Report</h1>
+      <p class="page-subtitle">Review fuel usage and manage diesel entries.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="openAddModal()">
+      <span aria-hidden="true">+</span>
+      Add Diesel
+    </button>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Diesel report summary">
+    <article class="summary-card">
+      <span class="summary-icon vehicle-icon" aria-hidden="true">V</span>
+      <div><strong>{{ totalVehicles }}</strong><span>Total Vehicles</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon fuel-icon" aria-hidden="true">L</span>
+      <div><strong>{{ formatNumber(totalFuel) }} L</strong><span>Total Fuel Used</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon distance-icon" aria-hidden="true">↔</span>
+      <div><strong>—</strong><span>Total Distance Covered</span><small>Not provided by diesel records</small></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon average-icon" aria-hidden="true">≈</span>
+      <div><strong>—</strong><span>Average Fuel Consumption</span><small>Requires distance data</small></div>
+    </article>
+  </section>
+
+  <section class="report-card" aria-label="Diesel records">
+    <div class="report-toolbar">
+      <div>
+        <span class="eyebrow">FUEL ACTIVITY</span>
+        <h2>Diesel Records</h2>
+      </div>
+      <div class="toolbar-actions">
+        <label class="search-field">
+          <span class="visually-hidden">Search diesel records</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search records..." />
+        </label>
+        <button type="button" class="icon-button" title="Refresh report" aria-label="Refresh report"
+          [disabled]="loadingRecords" (click)="loadRecords()">↻</button>
+      </div>
+    </div>
+
+    @if (loadingRecords) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading diesel records…</div>
+    } @else if (records.length === 0) {
+      <div class="table-state empty-state">No diesel records found.</div>
+    } @else if (filteredRecords.length === 0) {
+      <div class="table-state empty-state">No records match your search.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Vehicle Number</th>
+              <th>Fuel Pump</th>
+              <th>Rate / L</th>
+              <th>Fuel Used</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (record of filteredRecords; track record.id) {
+              <tr>
+                <td><span class="record-id">#{{ record.id }}</span></td>
+                <td>{{ record.date || '—' }}</td>
+                <td><strong class="vehicle-number">{{ record.machineNumber || '—' }}</strong></td>
+                <td>{{ record.petrolPump || '—' }}</td>
+                <td>{{ record.fuelRate === null || record.fuelRate === undefined ? '—' : '₹' + formatNumber(+record.fuelRate) }}</td>
+                <td>{{ record.diesel === null || record.diesel === undefined ? '—' : formatNumber(+record.diesel) + ' L' }}</td>
+                <td><strong>{{ '₹' + formatNumber(recordAmount(record)) }}</strong></td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5">Report total</td>
+              <td>{{ formatNumber(totalFuel) }} L</td>
+              <td>₹{{ formatNumber(totalAmount) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredRecords.length }} of {{ records.length }} records</div>
+    }
+  </section>
+</main>
+
+@if (showAddModal) {
+  <div class="overlay" (click)="closeAddModal()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="addDieselTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FUEL ACTIVITY</span>
+          <h2 id="addDieselTitle">Add Diesel</h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Close form" [disabled]="saving"
+          (click)="closeAddModal()">×</button>
+      </header>
+
+      <form (ngSubmit)="submitDiesel()">
+        <div class="dialog-body">
+          @if (modalError) {
+            <div class="alert alert-error" role="alert">{{ modalError }}</div>
+          }
+          <div class="form-field">
+            <label for="dieselVehicle">Select Vehicle</label>
+            <select id="dieselVehicle" name="vehicle" [(ngModel)]="form.vehicleId" required [disabled]="loadingVehicles">
+              <option value="">{{ loadingVehicles ? 'Loading vehicles…' : 'Select a vehicle' }}</option>
+              @for (vehicle of vehicles; track vehicle.id) {
+                <option [value]="vehicle.id">{{ vehicleNumber(vehicle) }}</option>
+              }
+            </select>
+            @if (!loadingVehicles && vehicles.length === 0) {
+              <small class="field-hint">No vehicles are available. Refresh or check the vehicle service.</small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="fuelInLtr">Fuel in litres</label>
+            <div class="input-with-unit">
+              <input id="fuelInLtr" name="fuelInLtr" type="number" min="0.01" step="any"
+                [(ngModel)]="form.fuelInLtr" placeholder="Enter fuel quantity" required />
+              <span>L</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="petrolPump">Select Petrol Pump</label>
+            <select id="petrolPump" name="petrolPump" [(ngModel)]="form.petrolPump" required>
+              <option value="">Select a petrol pump</option>
+              @for (pump of petrolPumps; track pump) {
+                <option [value]="pump">{{ pump }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="fuelRate">Rate per litre</label>
+            <div class="input-with-unit">
+              <span>₹</span>
+              <input id="fuelRate" name="rate" type="number" min="0.01" step="0.01"
+                [(ngModel)]="form.rate" placeholder="Enter rate" required />
+            </div>
+          </div>
+
+          @if (form.fuelInLtr && form.rate) {
+            <div class="amount-preview">
+              <span>Entry total</span>
+              <strong>₹{{ formatNumber(form.fuelInLtr * form.rate) }}</strong>
+            </div>
+          }
+        </div>
+
+        <footer class="dialog-footer">
+          <button class="secondary-button" type="button" [disabled]="saving" (click)="closeAddModal()">Cancel</button>
+          <button class="primary-button" type="submit" [disabled]="saving || loadingVehicles || vehicles.length === 0">
+            @if (saving) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Saving…
+            } @else {
+              Add Diesel
+            }
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

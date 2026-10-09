@@ -1,0 +1,82 @@
+<main class="invoices-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FINANCE &amp; REPORTS</span>
+      <h1>Invoices</h1>
+      <p class="page-subtitle">Browse, open, and print customer invoices.</p>
+    </div>
+    <button class="icon-button" type="button" title="Refresh invoices" aria-label="Refresh invoices"
+      [disabled]="loading" (click)="loadInvoices()">↻</button>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="invoice-card" aria-label="Invoice list">
+    <div class="table-toolbar">
+      <div>
+        <span class="eyebrow">INVOICE REGISTER</span>
+        <h2>All Invoices</h2>
+      </div>
+      <label class="search-field">
+        <span class="visually-hidden">Search invoices</span>
+        <span aria-hidden="true">⌕</span>
+        <input type="search" [(ngModel)]="searchTerm" placeholder="Search invoice ID or date..." />
+      </label>
+    </div>
+
+    @if (loading) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading invoices…</div>
+    } @else if (invoices.length === 0) {
+      <div class="table-state empty-state">No invoices have been generated.</div>
+    } @else if (filteredInvoices.length === 0) {
+      <div class="table-state empty-state">No invoices match your search.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice ID</th>
+              <th>Billed Date</th>
+              <th>Invoice Content</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (invoice of filteredInvoices; track invoice.id) {
+              <tr>
+                <td><span class="invoice-id">#{{ invoice.id }}</span></td>
+                <td>{{ invoice.billedDate || '—' }}</td>
+                <td>
+                  <button type="button" class="content-link"
+                    [disabled]="openingInvoiceId !== null" (click)="openInvoice(invoice)">
+                    Open invoice
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="print-button"
+                    [attr.aria-label]="'Open and print invoice ' + invoice.id"
+                    [disabled]="openingInvoiceId !== null"
+                    (click)="openInvoice(invoice)">
+                    @if (openingInvoiceId === invoice.id) {
+                      <span class="button-spinner" aria-hidden="true"></span>
+                      Opening…
+                    } @else {
+                      <span aria-hidden="true">⎙</span>
+                      Print
+                    }
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredInvoices.length }} of {{ invoices.length }} invoices</div>
+    }
+  </section>
+</main>

@@ -1,0 +1,157 @@
+<main class="login-page">
+
+  <!-- LEFT -->
+  <section class="visual">
+
+    <header class="brand">
+      <div class="brand-logo">T</div>
+
+      <div>
+        <strong>Transport ERP</strong>
+        <small>Fleet & Operations</small>
+      </div>
+    </header>
+
+    <div class="hero">
+
+      <span class="badge">
+        <i></i>
+        Fleet Operations System
+      </span>
+
+      <h1>
+        Move.
+        <span>Manage.</span>
+        <br>
+        Deliver.
+      </h1>
+
+      <p>
+        Manage excavators, dumpers, trips, diesel,
+        drivers, expenses and complete transport
+        operations from one powerful platform.
+      </p>
+
+    </div>
+
+    <!-- Simple construction illustration -->
+    <div class="machines">
+      <div class="excavator">
+        <div class="boom"></div>
+        <div class="arm"></div>
+        <div class="bucket"></div>
+        <div class="cab"></div>
+        <div class="body"></div>
+        <div class="track"></div>
+      </div>
+
+      <div class="truck">
+        <div class="truck-cab"></div>
+        <div class="truck-body"></div>
+        <div class="wheel wheel-1"></div>
+        <div class="wheel wheel-2"></div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div>
+        <strong>Fleet</strong>
+        <small>Management</small>
+      </div>
+
+      <div>
+        <strong>Trips</strong>
+        <small>Tracking</small>
+      </div>
+
+      <div>
+        <strong>Diesel</strong>
+        <small>Monitoring</small>
+      </div>
+
+      <div>
+        <strong>Reports</strong>
+        <small>Analytics</small>
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- RIGHT -->
+  <section class="login-section">
+
+    <div class="login-card">
+
+      <div class="login-header">
+        <h2>Welcome back</h2>
+
+        <p>
+          Sign in to access your transport
+          operations dashboard.
+        </p>
+      </div>
+
+      <form (ngSubmit)="login()">
+
+        <div class="input-group">
+          <span aria-hidden="true">●</span>
+
+          <input
+            type="text"
+            name="username"
+            aria-label="Username"
+            [(ngModel)]="username"
+            placeholder="Email or phone"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <span aria-hidden="true">●</span>
+
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            name="password"
+            aria-label="Password"
+            [(ngModel)]="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
+
+          <button
+            type="button"
+            class="show-password"
+            (click)="showPassword = !showPassword">
+
+            {{ showPassword ? 'Hide' : 'Show' }}
+
+          </button>
+        </div>
+
+        <button
+          class="login-button"
+          type="submit"
+          [disabled]="loading">
+          {{ loading ? 'Signing in...' : 'Sign In' }}
+        </button>
+
+        @if (error) {
+          <p class="error" role="alert">{{ error }}</p>
+        }
+
+      </form>
+
+      <footer>
+        Transport ERP System
+        <br>
+        Fleet Management • Excavator • Dumper • Trips • Diesel • Reports
+      </footer>
+
+    </div>
+
+  </section>
+
+</main>

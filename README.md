@@ -1,59 +1,45 @@
-# TransportApp
+# Transport ERP
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.3.
+An Angular application for transport, fleet, and operations management.
 
-## Development server
+## Requirements
 
-To start a local development server, run:
+- Node.js and npm versions supported by the installed Angular CLI.
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Set up and run
 
 ```bash
-ng generate component component-name
+npm ci
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Open `http://localhost:4200/`. The root URL and unknown routes redirect to the
+login page at `/login`.
+
+## Checks and production build
 
 ```bash
-ng generate --help
+npm test
+npm run build
 ```
 
-## Building
-
-To build the project run:
+The production build is written to `dist/`. To run the built server-rendered
+application locally:
 
 ```bash
-ng build
+npm run serve:ssr:transport-app
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+The server listens on port `4000` by default and supports the `PORT` environment
+variable.
 
-## Running unit tests
+## Sign-in
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+The login form calls `GET http://localhost:8081/login/user` with `email` and
+`pass` query parameters. A successful HTTP response navigates to `/dashboard`;
+HTTP 401/403 responses are shown as invalid credentials.
 
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The API host is configured in `src/app/core/services/host.ts`. The backend must
+allow browser requests from the app's origin. Before production use, move
+credentials to a TLS-protected POST request body and protect the dashboard with
+authentication and authorization.

@@ -1,0 +1,197 @@
+<main class="reading-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FLEET OPERATIONS</span>
+      <h1>Unbilled Machine Reading</h1>
+      <p class="page-subtitle">Review machine-hour readings and invoice selected records.</p>
+    </div>
+    <div class="header-actions">
+      <button class="secondary-button" type="button" [disabled]="loadingReadings" (click)="loadReadings()">
+        Refresh
+      </button>
+      <button class="secondary-button print-button" type="button" [disabled]="loadingReadings || filteredReadings.length === 0"
+        (click)="printReport()">
+        Print Report
+      </button>
+      <button class="primary-button" type="button" [disabled]="loadingReadings || generatingInvoice"
+        (click)="openInvoiceModal()">
+        Generate Invoice ({{ selectedReadingIds.size }})
+      </button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button type="button" aria-label="Dismiss success" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Unbilled reading summary">
+    <article class="summary-card">
+      <span class="summary-icon reading-icon" aria-hidden="true">#</span>
+      <div><strong>{{ filteredReadings.length }}</strong><span>Total Readings</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon hours-icon" aria-hidden="true">H</span>
+      <div><strong>{{ formatNumber(reportTotalHours) }}</strong><span>Total Hours</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon diesel-icon" aria-hidden="true">L</span>
+      <div><strong>{{ formatNumber(totalDiesel) }}</strong><span>Total Diesel</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon selected-icon" aria-hidden="true">✓</span>
+      <div><strong>{{ selectedReadings.length }}</strong><span>Selected for Invoice</span></div>
+    </article>
+  </section>
+
+  <section class="report-card" aria-label="Unbilled machine readings">
+    <div class="report-toolbar">
+      <div>
+        <span class="eyebrow">MACHINE ACTIVITY</span>
+        <h2>Order Report</h2>
+      </div>
+      <div class="filters">
+        <label class="search-field">
+          <span class="visually-hidden">Search readings</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search order, machine, date..." />
+        </label>
+        <label class="vehicle-filter">
+          <span class="visually-hidden">Filter by vehicle</span>
+          <select [(ngModel)]="selectedVehicle" [disabled]="loadingVehicles">
+            <option value="">{{ loadingVehicles ? 'Loading vehicles…' : 'All vehicles' }}</option>
+            @for (vehicle of vehicles; track vehicle.id) {
+              <option [value]="vehicleNumber(vehicle)">{{ vehicleNumber(vehicle) }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (loadingReadings) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading readings…</div>
+    } @else if (readings.length === 0) {
+      <div class="table-state empty-state">No unbilled machine readings found.</div>
+    } @else if (filteredReadings.length === 0) {
+      <div class="table-state empty-state">No readings match your search or vehicle filter.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-cell">
+                <input type="checkbox" aria-label="Select all visible readings"
+                  [checked]="allVisibleSelected"
+                  [indeterminate]="selectedReadings.length > 0 && !allVisibleSelected"
+                  (change)="toggleVisibleReadings()" />
+              </th>
+              <th>Reading ID</th>
+              <th>Customer Name</th>
+              <th>Machine Number</th>
+              <th>Date</th>
+              <th>Start Reading</th>
+              <th>End Reading</th>
+              <th>Total Hours</th>
+              <th>Diesel</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (reading of filteredReadings; track reading.id) {
+              <tr>
+                <td class="check-cell">
+                  <input type="checkbox" [attr.aria-label]="'Select reading ' + reading.id"
+                    [checked]="isSelected(reading)" (change)="toggleReading(reading)" />
+                </td>
+                <td><span class="record-id">#{{ reading.id }}</span></td>
+                <td>{{ reading.orderName || '—' }}</td>
+                <td><strong class="machine-number">{{ reading.machineNumber || '—' }}</strong></td>
+                <td>{{ reading.date || '—' }}</td>
+                <td>{{ reading.startReading ?? '—' }}</td>
+                <td>{{ reading.endReading ?? '—' }}</td>
+                <td>{{ calculateHours(reading) }}</td>
+                <td>{{ reading.diesel === undefined || reading.diesel === null || reading.diesel === '' ? '—' : formatNumber(reading.diesel) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="7">Visible readings total</td>
+              <td>{{ formatNumber(reportTotalHours) }} hours</td>
+              <td>{{ formatNumber(totalDiesel) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">
+        {{ filteredReadings.length }} of {{ readings.length }} readings
+      </div>
+    }
+  </section>
+</main>
+
+@if (showInvoiceModal) {
+  <div class="overlay" (click)="closeInvoiceModal()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="invoiceTitle"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">SELECTED READINGS · {{ selectedReadings.length }}</span>
+          <h2 id="invoiceTitle">Generate Tax Invoice</h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Close invoice form"
+          [disabled]="generatingInvoice" (click)="closeInvoiceModal()">×</button>
+      </header>
+
+      @if (invoiceError) {
+        <div class="alert alert-error" role="alert">{{ invoiceError }}</div>
+      }
+
+      <p class="dialog-description">
+        Enter the rate per machine hour. The selected readings will be marked billed after updates succeed.
+      </p>
+
+      <div class="form-fields">
+        <label for="hourlyRate">Rate per hour <span class="required">*</span></label>
+        <div class="input-with-prefix"><span>₹</span>
+          <input id="hourlyRate" type="number" min="0" step="0.01" [(ngModel)]="hourlyRate" required />
+        </div>
+
+        <label for="advancePayment">Advance payment <span class="optional">(optional)</span></label>
+        <div class="input-with-prefix"><span>₹</span>
+          <input id="advancePayment" type="number" min="0" step="0.01" [(ngModel)]="advancePayment" />
+        </div>
+
+        <label for="gstPercent">GST <span class="optional">(%)</span></label>
+        <div class="input-with-suffix">
+          <input id="gstPercent" type="number" min="0" step="0.01" [(ngModel)]="gstPercent" />
+          <span>%</span>
+        </div>
+      </div>
+
+      <div class="invoice-summary">
+        <div><span>Total machine hours</span><strong>{{ formatNumber(selectedHours) }}</strong></div>
+        <div><span>Taxable value</span><strong>₹{{ formatNumber(invoiceSubtotal) }}</strong></div>
+        <div><span>CGST + SGST</span><strong>₹{{ formatNumber(invoiceTax) }}</strong></div>
+        <div><span>Total invoice amount</span><strong>₹{{ formatNumber(invoiceTotal) }}</strong></div>
+        <div><span>Due after advance</span><strong>₹{{ formatNumber(invoiceDue) }}</strong></div>
+      </div>
+
+      <footer class="dialog-footer">
+        <button class="secondary-button" type="button" [disabled]="generatingInvoice" (click)="closeInvoiceModal()">
+          Cancel
+        </button>
+        <button class="primary-button" type="button" [disabled]="generatingInvoice" (click)="generateInvoice()">
+          {{ generatingInvoice ? 'Saving invoice…' : 'Save and Print Invoice' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

@@ -1,0 +1,655 @@
+<div class="vehicles-page">
+
+  <!-- ==========================================================
+       Page Header
+       ========================================================== -->
+
+  <div class="page-header">
+
+    <div>
+      <h1>Vehicles</h1>
+
+      <p class="page-subtitle">
+        Manage your transport fleet
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="openAddVehicleModal()"
+    >
+      <span class="btn-icon">+</span>
+      Add New Vehicle
+    </button>
+
+  </div>
+
+
+  <!-- ==========================================================
+       Error
+       ========================================================== -->
+
+  @if (errorMessage) {
+
+    <div class="alert alert-error">
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+      <button
+        type="button"
+        class="alert-close"
+        (click)="errorMessage = ''"
+      >
+        ×
+      </button>
+
+    </div>
+
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">
+      <span>{{ successMessage }}</span>
+      <button
+        type="button"
+        class="alert-close"
+        aria-label="Dismiss success message"
+        (click)="successMessage = ''"
+      >
+        ×
+      </button>
+    </div>
+  }
+
+
+  <!-- ==========================================================
+       Filters
+       ========================================================== -->
+
+  <section class="filters-card">
+
+    <div class="filter-field">
+
+      <label for="vehicleStatus">
+        Status
+      </label>
+
+      <select
+        id="vehicleStatus"
+        [(ngModel)]="selectedStatus"
+      >
+
+        <option value="">
+          Filter by Status
+        </option>
+
+        @for (
+          status of statusOptions;
+          track status
+        ) {
+
+          <option [value]="status">
+            {{ status | titlecase }}
+          </option>
+
+        }
+
+      </select>
+
+    </div>
+
+
+    <div class="filter-field search-field">
+
+      <label for="vehicleSearch">
+        Search
+      </label>
+
+      <input
+        id="vehicleSearch"
+        type="text"
+        [(ngModel)]="searchText"
+        placeholder="Search vehicle, company or driver"
+      />
+
+    </div>
+
+
+    <div class="filter-actions">
+
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="applyFilters()"
+      >
+        Apply Filters
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="clearFilters()"
+      >
+        Clear
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- ==========================================================
+       Vehicle Table
+       ========================================================== -->
+
+  <section class="table-card">
+
+    <div class="table-header">
+
+      <div>
+
+        <h2>Vehicle List</h2>
+
+        <span class="record-count">
+          {{ filteredVehicles.length }}
+          vehicles
+        </span>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="refresh-button"
+        (click)="loadVehicles()"
+        [disabled]="loading"
+        title="Refresh vehicles"
+      >
+        ↻
+      </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>ID</th>
+            <th>Vehicle Number</th>
+            <th>Company</th>
+            <th>Vehicle Type</th>
+            <th>Drivers</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @if (
+            !loading &&
+            filteredVehicles.length === 0
+          ) {
+
+            <tr>
+
+              <td
+                colspan="7"
+                class="empty-state"
+              >
+
+                <div class="empty-icon">
+                  🚛
+                </div>
+
+                <h3>
+                  No vehicles found
+                </h3>
+
+                <p>
+                  No vehicles match your current filters.
+                </p>
+
+              </td>
+
+            </tr>
+
+          }
+
+
+          @for (
+            vehicle of filteredVehicles;
+            track vehicle.vehicle_id
+          ) {
+
+            <tr
+              class="vehicle-row"
+              (dblclick)="openVehicleDetails(vehicle)"
+            >
+
+              <!-- ID -->
+
+              <td>
+
+                <span class="vehicle-id">
+                  {{ vehicle.vehicle_id }}
+                </span>
+
+              </td>
+
+
+              <!-- Vehicle Number -->
+
+              <td>
+
+                <span class="machine-number">
+                  {{ vehicle.machine_number || '-' }}
+                </span>
+
+              </td>
+
+
+              <!-- Company -->
+
+              <td>
+
+                <span class="company-name">
+                  {{ vehicle.company || '-' }}
+                </span>
+
+              </td>
+
+
+              <!-- Type -->
+
+              <td>
+
+                @switch (vehicle.v_type.trim().toLowerCase()) {
+                  @case ('excavator') {
+                    <span class="vehicle-type-icon excavator-icon" role="img" aria-label="Excavator" title="Excavator">
+                      <svg class="excavator-silhouette" viewBox="0 0 48 32" aria-hidden="true">
+                        <path d="M18.7 18.5 38.2 2.1c1.8-1.5 4.4-.2 4.4 2.1v17.1c0 3.5-2.3 6.3-5.8 7.1l-4.6 1c-1.8.4-3-1.7-1.8-3.1l8-9.1V8.3L22.1 23.2z" />
+                        <path d="M8 18.9V5.6c0-2 1.6-3.6 3.6-3.6h4.5c1.8 0 3.4 1 4.3 2.5l5.7 9.4-5.8 5H8z" />
+                        <path d="M6.1 17.6h12.2c4.1 0 7.4 3.3 7.4 7.4s-3.3 7.4-7.4 7.4H6.1C2.7 32.4 0 29.7 0 26.3v-2.6c0-3.4 2.7-6.1 6.1-6.1z" transform="translate(0 -1)" />
+                        <rect x="4.5" y="22.5" width="13" height="4.5" rx="2.25" class="track-cutout" />
+                      </svg>
+                    </span>
+                  }
+                  @case ('dumper') {
+                    <span class="vehicle-type-icon dumper-icon" role="img" aria-label="Dumper" title="Dumper">
+                      <svg viewBox="0 0 48 32" aria-hidden="true">
+                        <path d="M4 9h21l-3 11H7zM25 15h10l6 6v4H7v-5M25 17h8l4 4H24z" />
+                        <circle cx="14" cy="25" r="3" />
+                        <circle cx="33" cy="25" r="3" />
+                      </svg>
+                    </span>
+                  }
+                  @default {
+                    <span class="vehicle-type">
+                      {{ vehicle.v_type || '-' }}
+                    </span>
+                  }
+                }
+
+              </td>
+
+
+              <!-- Drivers -->
+
+              <td>
+
+                <span class="driver-name">
+                  {{ formatDriverNames(vehicle.driver_names) }}
+                </span>
+
+              </td>
+
+
+              <!-- Status -->
+
+              <td>
+
+                <span
+                  class="vehicle-status"
+                  [ngClass]="
+                    getStatusClass(
+                      getVehicleStatus(vehicle)
+                    )
+                  "
+                >
+                  {{ getVehicleStatus(vehicle) }}
+                </span>
+
+              </td>
+
+
+              <!-- Actions -->
+
+              <td>
+
+                <div class="actions">
+
+                  <button
+                    type="button"
+                    class="action-button view"
+                    (click)="
+                      openVehicleDetails(vehicle);
+                      $event.stopPropagation()
+                    "
+                  >
+                    View
+                  </button>
+
+                  <button
+                    type="button"
+                    class="action-button report"
+                    (click)="
+                      openMachineDetails(vehicle);
+                      $event.stopPropagation()
+                    ">👁️‍🗨️</button>
+
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</div>
+
+@if (showAddVehicleModal) {
+  <div class="modal-backdrop" (click)="closeAddVehicleModal()">
+    <section
+      class="modal add-vehicle-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addVehicleTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <div>
+          <span class="modal-label">FLEET MANAGEMENT</span>
+          <h2 id="addVehicleTitle">Add New Vehicle</h2>
+        </div>
+        <button
+          type="button"
+          class="modal-close"
+          aria-label="Close add vehicle form"
+          [disabled]="addingVehicle"
+          (click)="closeAddVehicleModal()"
+        >
+          ×
+        </button>
+      </div>
+
+      <form class="modal-body add-vehicle-form" (ngSubmit)="submitAddVehicle()">
+        @if (addVehicleError) {
+          <div class="alert alert-error" role="alert">{{ addVehicleError }}</div>
+        }
+
+        <div class="form-field">
+          <label for="machine_number">Machine Number</label>
+          <input
+            id="machine_number"
+            name="machine_number"
+            type="text"
+            [(ngModel)]="addVehicleForm.machine_number"
+            placeholder="Enter machine number"
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="company">Company</label>
+          <input
+            id="company"
+            name="company"
+            type="text"
+            [(ngModel)]="addVehicleForm.company"
+            placeholder="Enter company name"
+            autocomplete="organization"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="vehicleType">Vehicle Type</label>
+          <select id="vehicleType" name="v_type" [(ngModel)]="addVehicleForm.v_type" required>
+            @for (type of vehicleTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="addingVehicle"
+            (click)="closeAddVehicleModal()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary add-vehicle-submit" [disabled]="addingVehicle">
+            @if (addingVehicle) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Adding...
+            } @else {
+              Add Vehicle
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+<!-- ==========================================================
+     Loading Overlay
+     ========================================================== -->
+
+@if (loading) {
+
+  <div class="loading-overlay">
+
+    <div class="loading-card">
+
+      <div class="spinner"></div>
+
+      <span>
+        Loading vehicles...
+      </span>
+
+    </div>
+
+  </div>
+
+}
+
+
+<!-- ==========================================================
+     Vehicle Details Modal
+     ========================================================== -->
+
+@if (showModal && selectedVehicle) {
+
+  <div
+    class="modal-backdrop"
+    (click)="closeModal()"
+  >
+
+    <div
+      class="modal"
+      (click)="$event.stopPropagation()"
+    >
+
+      <!-- Modal Header -->
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="modal-label">
+            VEHICLE DETAILS
+          </span>
+
+          <h2>
+            {{ selectedVehicle.machine_number }}
+          </h2>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="modal-close"
+          (click)="closeModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- Modal Body -->
+
+      <div class="modal-body">
+
+        <div class="details-grid">
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Vehicle ID
+            </span>
+
+            <strong>
+              {{ selectedVehicle.vehicle_id }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Vehicle Number
+            </span>
+
+            <strong>
+              {{ selectedVehicle.machine_number }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Company
+            </span>
+
+            <strong>
+              {{ selectedVehicle.company || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Vehicle Type
+            </span>
+
+            <strong>
+              {{ selectedVehicle.v_type || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Driver
+            </span>
+
+            <strong>
+              {{ formatDriverNames(selectedVehicle.driver_names) }}
+            </strong>
+
+          </div>
+
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              Status
+            </span>
+
+            <span
+              class="vehicle-status"
+              [ngClass]="
+                getStatusClass(
+                  getVehicleStatus(selectedVehicle)
+                )
+              "
+            >
+              {{ getVehicleStatus(selectedVehicle) }}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Modal Footer -->
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeModal()"
+        >
+          Close
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="openMachineDetails(selectedVehicle)"
+        >
+          Machine &amp; Reading Details
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}

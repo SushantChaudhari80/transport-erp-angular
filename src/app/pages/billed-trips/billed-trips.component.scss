@@ -1,0 +1,415 @@
+:host {
+  display: block;
+  color: #26384b;
+  font-family: Poppins, Inter, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.billed-trips-page {
+  min-height: 100%;
+  padding: 28px;
+  background: #f4f7fa;
+}
+
+.page-header,
+.header-actions,
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header,
+.summary-grid,
+.report-card,
+.alert {
+  max-width: 1300px;
+  margin-inline: auto;
+}
+
+.page-header {
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 5px 0 4px;
+    color: #26384b;
+    font-size: clamp(23px, 3vw, 30px);
+    font-weight: 600;
+  }
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #788596;
+  font-size: 13px;
+}
+
+.eyebrow {
+  color: #2980b9;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.icon-button,
+.print-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid #dce3ea;
+  border-radius: 6px;
+  background: #fff;
+  color: #526579;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.icon-button {
+  width: 40px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.print-button {
+  border-color: #26384b;
+  background: #34495e;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #26384b;
+  }
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 20px;
+    cursor: pointer;
+  }
+}
+
+.summary-grid,
+.report-card {
+  margin-bottom: 18px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.summary-card,
+.report-card {
+  border: 1px solid #e5eaf0;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(32, 51, 72, 0.05);
+}
+
+.summary-card {
+  display: flex;
+  min-height: 100px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    margin-bottom: 5px;
+    color: #26384b;
+    font-size: clamp(17px, 2vw, 22px);
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  div > span {
+    color: #788596;
+    font-size: 11px;
+    font-weight: 600;
+  }
+}
+
+.summary-icon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.payment-icon {
+  background: #e8f3fb;
+  color: #287eb5;
+}
+
+.advance-icon {
+  background: #eaf7ed;
+  color: #2a8c50;
+}
+
+.diesel-icon {
+  background: #fff2dd;
+  color: #bd7912;
+}
+
+.due-icon {
+  background: #f1edff;
+  color: #7559bb;
+}
+
+.due-credit strong,
+.due-credit .summary-icon {
+  color: #b42332;
+}
+
+.report-card {
+  padding: 20px;
+}
+
+.report-toolbar {
+  margin-bottom: 15px;
+
+  h2 {
+    margin: 4px 0 0;
+    color: #26384b;
+    font-size: 18px;
+  }
+}
+
+.search-field {
+  display: flex;
+  width: min(280px, 52vw);
+  height: 39px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid #dce3ea;
+  border-radius: 6px;
+  color: #8794a3;
+
+  input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: #34465a;
+    font: inherit;
+    font-size: 12px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+
+  th,
+  td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #e8edf2;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    background: #2980b9;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  th:first-child {
+    border-radius: 6px 0 0;
+  }
+
+  th:last-child {
+    border-radius: 0 6px 0 0;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #fafbfd;
+  }
+
+  tbody tr:hover {
+    background: #f1f6fa;
+  }
+
+  tfoot td {
+    border-bottom: 0;
+    background: #f3f7fa;
+    color: #34465a;
+    font-weight: 700;
+  }
+}
+
+.trip-id {
+  color: #287eb5;
+  font-weight: 700;
+}
+
+.vehicle-number {
+  display: inline-block;
+  padding: 5px 7px;
+  border-radius: 5px;
+  background: #fff4dd;
+  color: #916114;
+  font-weight: 600;
+}
+
+.total-cell {
+  color: #237747;
+  font-weight: 700;
+}
+
+.table-footer {
+  padding-top: 13px;
+  color: #8794a3;
+  font-size: 11px;
+}
+
+.table-state {
+  display: flex;
+  min-height: 165px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #7c8998;
+  font-size: 13px;
+}
+
+.empty-state {
+  border: 1px dashed #dce3ea;
+  border-radius: 7px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dce6ef;
+  border-top-color: #2980b9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .billed-trips-page {
+    padding: 20px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .billed-trips-page {
+    padding: 15px;
+  }
+
+  .page-header,
+  .report-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-field {
+    width: 100%;
+  }
+}
+
+@media print {
+  :host,
+  .billed-trips-page {
+    background: #fff;
+  }
+
+  .billed-trips-page {
+    padding: 0;
+  }
+
+  .header-actions,
+  .search-field,
+  .table-footer {
+    display: none !important;
+  }
+
+  .page-header,
+  .report-card,
+  .summary-card {
+    max-width: none;
+    box-shadow: none;
+  }
+
+  table {
+    font-size: 9px;
+  }
+
+  table th,
+  table td {
+    padding: 6px;
+  }
+}

@@ -1,0 +1,116 @@
+<main class="reading-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">FLEET OPERATIONS</span>
+      <h1>Billed Machine Reading</h1>
+      <p class="page-subtitle">Review billed machine-hour readings and diesel usage.</p>
+    </div>
+    <div class="header-actions">
+      <button class="secondary-button" type="button" [disabled]="loadingReadings" (click)="loadReadings()">
+        Refresh
+      </button>
+      <button class="primary-button" type="button" [disabled]="loadingReadings || filteredReadings.length === 0"
+        (click)="printReport()">
+        Print Report
+      </button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  <section class="summary-grid" aria-label="Billed reading summary">
+    <article class="summary-card">
+      <span class="summary-icon reading-icon" aria-hidden="true">#</span>
+      <div><strong>{{ filteredReadings.length }}</strong><span>Total Orders</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon hours-icon" aria-hidden="true">H</span>
+      <div><strong>{{ formatNumber(totalHours) }}</strong><span>Total Hours</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon diesel-icon" aria-hidden="true">L</span>
+      <div><strong>{{ formatNumber(totalDiesel) }}</strong><span>Total Diesel</span></div>
+    </article>
+    <article class="summary-card">
+      <span class="summary-icon vehicle-icon" aria-hidden="true">V</span>
+      <div><strong>{{ vehicles.length }}</strong><span>Vehicles</span></div>
+    </article>
+  </section>
+
+  <section class="report-card" aria-label="Billed machine reading report">
+    <div class="report-toolbar">
+      <div>
+        <span class="eyebrow">MACHINE ACTIVITY</span>
+        <h2>Billed Reading Report</h2>
+      </div>
+      <div class="filters">
+        <label class="search-field">
+          <span class="visually-hidden">Search billed readings</span>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" [(ngModel)]="searchTerm" placeholder="Search order, machine, date..." />
+        </label>
+        <label class="vehicle-filter">
+          <span class="visually-hidden">Filter by vehicle</span>
+          <select [(ngModel)]="selectedVehicle" [disabled]="loadingVehicles">
+            <option value="">{{ loadingVehicles ? 'Loading vehicles…' : 'All vehicles' }}</option>
+            @for (vehicle of vehicles; track vehicle.id) {
+              <option [value]="vehicleNumber(vehicle)">{{ vehicleNumber(vehicle) }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (loadingReadings) {
+      <div class="table-state" role="status"><span class="spinner" aria-hidden="true"></span>Loading billed readings…</div>
+    } @else if (readings.length === 0) {
+      <div class="table-state empty-state">No billed machine readings found.</div>
+    } @else if (filteredReadings.length === 0) {
+      <div class="table-state empty-state">No readings match your search or vehicle filter.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Reading ID</th>
+              <th>Customer Name</th>
+              <th>Machine Number</th>
+              <th>Date</th>
+              <th>Start Reading</th>
+              <th>End Reading</th>
+              <th>Total Hours</th>
+              <th>Diesel</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (reading of filteredReadings; track reading.id) {
+              <tr>
+                <td><span class="record-id">#{{ reading.id }}</span></td>
+                <td>{{ reading.orderName || '—' }}</td>
+                <td><strong class="machine-number">{{ reading.machineNumber || '—' }}</strong></td>
+                <td>{{ reading.date || '—' }}</td>
+                <td>{{ reading.startReading ?? '—' }}</td>
+                <td>{{ reading.endReading ?? '—' }}</td>
+                <td>{{ calculateHours(reading) }}</td>
+                <td>{{ reading.diesel === undefined || reading.diesel === null || reading.diesel === '' ? '—' : formatNumber(reading.diesel) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="6">Visible readings total</td>
+              <td>{{ formatNumber(totalHours) }} hours</td>
+              <td>{{ formatNumber(totalDiesel) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">{{ filteredReadings.length }} of {{ readings.length }} billed readings</div>
+    }
+  </section>
+</main>
