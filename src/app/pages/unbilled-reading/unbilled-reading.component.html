@@ -90,7 +90,8 @@
               <th class="check-cell">
                 <input type="checkbox" aria-label="Select all visible readings"
                   [checked]="allVisibleSelected"
-                  [indeterminate]="selectedReadings.length > 0 && !allVisibleSelected"
+                  [indeterminate]="someVisibleSelected && !allVisibleSelected"
+                  [disabled]="generatingInvoice || selectableVisibleReadings.length === 0"
                   (change)="toggleVisibleReadings()" />
               </th>
               <th>Reading ID</th>
@@ -108,7 +109,8 @@
               <tr>
                 <td class="check-cell">
                   <input type="checkbox" [attr.aria-label]="'Select reading ' + reading.id"
-                    [checked]="isSelected(reading)" (change)="toggleReading(reading)" />
+                    [checked]="isSelected(reading)" [disabled]="generatingInvoice || !canSelectReading(reading)"
+                    [title]="readingSelectionHint(reading)" (change)="toggleReading(reading)" />
                 </td>
                 <td><span class="record-id">#{{ reading.id }}</span></td>
                 <td>{{ reading.orderName || '—' }}</td>
@@ -155,7 +157,8 @@
       }
 
       <p class="dialog-description">
-        Enter the rate per machine hour. The selected readings will be marked billed after updates succeed.
+        Invoice customer: <strong>{{ selectedCustomerName }}</strong>. Enter the rate per machine hour.
+        The selected readings will be marked billed after updates succeed.
       </p>
 
       <div class="form-fields">

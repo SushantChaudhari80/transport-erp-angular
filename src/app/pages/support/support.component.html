@@ -3,18 +3,15 @@
     <div>
       <span class="eyebrow">HELP DESK</span>
       <h1>Incident / Support</h1>
-      <p class="page-subtitle">Report an issue and follow its progress.</p>
+      <p class="page-subtitle">
+        Report an issue, update its status, and add comments. Submitted incident details stay read-only.
+      </p>
     </div>
     <button class="primary-button" type="button" (click)="openCreateForm()">
       <span aria-hidden="true">+</span>
       Create Incident
     </button>
   </header>
-
-  <div class="storage-notice" role="note">
-    <span class="notice-icon" aria-hidden="true">i</span>
-    Incidents are currently saved in this browser only. Backend synchronization will be added later.
-  </div>
 
   @if (errorMessage) {
     <div class="alert alert-error" role="alert">
@@ -72,7 +69,9 @@
       </div>
     </div>
 
-    @if (incidents.length === 0) {
+    @if (loadingIncidents) {
+      <div class="empty-state" role="status">Loading incidents...</div>
+    } @else if (incidents.length === 0) {
       <div class="empty-state">
         <span class="empty-icon" aria-hidden="true">!</span>
         <strong>No incidents yet</strong>
@@ -87,6 +86,7 @@
           <thead>
             <tr>
               <th>Incident</th>
+              <th>Created By</th>
               <th>Category</th>
               <th>Priority</th>
               <th>Created</th>
@@ -101,8 +101,9 @@
                   <button class="incident-title" type="button" (click)="openIncident(incident)">
                     {{ incident.title }}
                   </button>
-                  <span class="incident-id">{{ incident.id }}</span>
+                  <span class="incident-id">{{ incidentLabel(incident) }}</span>
                 </td>
+                <td>{{ incident.createdBy || '—' }}</td>
                 <td>{{ incident.category }}</td>
                 <td><span class="priority-badge" [class]="'priority-' + incident.priority.toLowerCase()">
                   {{ incident.priority }}
@@ -111,6 +112,7 @@
                 <td>
                   <label class="visually-hidden" [for]="'status-' + incident.id">Update status</label>
                   <select class="status-select" [id]="'status-' + incident.id" [value]="incident.status"
+                    [disabled]="updatingIncidentId !== null"
                     (change)="onStatusChange(incident, $event)">
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -151,7 +153,8 @@
           <div class="form-field">
             <label for="incidentTitle">Incident title</label>
             <input id="incidentTitle" name="title" type="text" [(ngModel)]="form.title"
-              maxlength="100" placeholder="Briefly describe the issue" required />
+              maxlength="200" placeholder="Briefly describe the issue" required />
+            <span class="field-hint">{{ form.title.length }}/200</span>
           </div>
           <div class="form-row">
             <div class="form-field">
@@ -181,7 +184,9 @@
         </div>
         <footer class="dialog-footer">
           <button class="secondary-button" type="button" (click)="closeCreateForm()">Cancel</button>
-          <button class="primary-button" type="submit">Create Incident</button>
+          <button class="primary-button" type="submit" [disabled]="savingIncident">
+            {{ savingIncident ? 'Creating...' : 'Create Incident' }}
+          </button>
         </footer>
       </form>
     </section>
@@ -194,7 +199,7 @@
       (click)="$event.stopPropagation()">
       <header class="dialog-header">
         <div>
-          <span class="eyebrow">{{ incident.id }}</span>
+          <span class="eyebrow">{{ incidentLabel(incident) }}</span>
           <h2 id="incidentDetailTitle">{{ incident.title }}</h2>
         </div>
         <button type="button" class="close-button" aria-label="Close details" (click)="closeIncidentDetails()">×</button>
@@ -203,6 +208,7 @@
         <div class="detail-meta">
           <div><span>Category</span><strong>{{ incident.category }}</strong></div>
           <div><span>Priority</span><strong>{{ incident.priority }}</strong></div>
+          <div><span>Created by</span><strong>{{ incident.createdBy || '—' }}</strong></div>
           <div><span>Created</span><strong>{{ formatDate(incident.createdAt) }}</strong></div>
           <div><span>Status</span><strong>{{ incident.status }}</strong></div>
         </div>
@@ -210,7 +216,49 @@
           <span>Description</span>
           <p>{{ incident.description }}</p>
         </div>
-        <div class="local-state-note">This incident is stored in this browser until backend support is added.</div>
+        <section class="comments-section" aria-labelledby="incidentCommentsTitle">
+          <header class="comments-header">
+            <div>
+              <span class="eyebrow">DISCUSSION</span>
+              <h3 id="incidentCommentsTitle">Comments</h3>
+            </div>
+            <span class="comment-count">{{ incidentComments.length }}</span>
+          </header>
+
+          @if (commentErrorMessage) {
+            <div class="alert alert-error" role="alert">{{ commentErrorMessage }}</div>
+          }
+          @if (commentSuccessMessage) {
+            <div class="alert alert-success" role="status">{{ commentSuccessMessage }}</div>
+          }
+
+          @if (loadingComments) {
+            <p class="comments-state" role="status">Loading comments...</p>
+          } @else if (incidentComments.length === 0) {
+            <p class="comments-state">No comments yet. Add the first update below.</p>
+          } @else {
+            <ol class="comment-list" #commentList>
+              @for (comment of incidentComments; track comment.id) {
+                <li class="comment-item" [class.comment-user]="isUserComment(comment)">
+                  <span class="comment-author">{{ comment.commentedBy }}</span>
+                  <p>{{ comment.commentText }}</p>
+                  <time [attr.datetime]="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
+                </li>
+              }
+            </ol>
+          }
+
+          <form class="comment-form" (ngSubmit)="addComment()">
+            <label for="incidentComment">Add a comment</label>
+            <textarea id="incidentComment" name="comment" [(ngModel)]="commentDraft"
+              rows="3" maxlength="5000" placeholder="Share an update..." required></textarea>
+            <span class="field-hint">{{ commentDraft.length }}/5000</span>
+            <button class="primary-button" type="submit"
+              [disabled]="savingComment || !commentDraft.trim()">
+              {{ savingComment ? 'Adding...' : 'Add comment' }}
+            </button>
+          </form>
+        </section>
       </div>
       <footer class="dialog-footer">
         <button class="secondary-button" type="button" (click)="closeIncidentDetails()">Close</button>

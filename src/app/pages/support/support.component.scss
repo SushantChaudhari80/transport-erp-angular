@@ -177,7 +177,7 @@
   padding: 16px;
 
   strong,
-  span {
+  div > span {
     display: block;
   }
 
@@ -607,9 +607,139 @@ table {
   }
 }
 
-.local-state-note {
-  color: #8794a3;
-  font-size: 10px;
+.comments-section {
+  display: grid;
+  gap: 13px;
+  padding-top: 4px;
+}
+
+.comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h3 {
+    margin: 4px 0 0;
+    color: #34465a;
+    font-size: 16px;
+  }
+}
+
+.comment-count {
+  display: grid;
+  min-width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 14px;
+  background: #e8f3fb;
+  color: #287eb5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.comments-state {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed #dce3ea;
+  border-radius: 6px;
+  color: #788596;
+  font-size: 12px;
+}
+
+.comment-list {
+  display: grid;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-item {
+  justify-self: start;
+  width: fit-content;
+  max-width: 85%;
+  padding: 11px 12px;
+  border: 1px solid #e7edf2;
+  border-radius: 7px;
+  background: #fbfcfd;
+
+  .comment-author {
+    display: block;
+    margin-bottom: 5px;
+    color: #287eb5;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: #34465a;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  time {
+    display: block;
+    margin-top: 8px;
+    color: #8794a3;
+    font-size: 10px;
+  }
+}
+
+.comment-user {
+  justify-self: end;
+  border-color: #cfe3f1;
+  background: #eff7fc;
+
+  .comment-author {
+    color: #237747;
+  }
+}
+
+.comment-form {
+  display: grid;
+  gap: 7px;
+  padding-top: 13px;
+  border-top: 1px solid #e9eef3;
+
+  label {
+    color: #45566a;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 82px;
+    padding: 9px 11px;
+    border: 1px solid #d4dde5;
+    border-radius: 6px;
+    outline: none;
+    color: #2d3d50;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+
+    &:focus {
+      border-color: #2980b9;
+      box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.12);
+    }
+  }
+
+  .primary-button {
+    justify-self: end;
+  }
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .visually-hidden {

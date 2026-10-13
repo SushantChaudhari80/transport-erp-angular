@@ -115,9 +115,33 @@ export class UnbilledReadingComponent implements OnInit {
     return this.readings.filter((reading) => this.selectedReadingIds.has(String(reading.id)));
   }
 
+  get selectedCustomerName(): string {
+    return this.selectedReadings[0]?.orderName?.trim() ?? '';
+  }
+
+  get selectableVisibleReadings(): MachineReading[] {
+    const anchorCustomer = this.selectedCustomerName ||
+      this.filteredReadings.find((reading) => reading.orderName?.trim())?.orderName?.trim() ||
+      '';
+    if (!anchorCustomer) {
+      return [];
+    }
+
+    const anchorKey = this.customerKey(anchorCustomer);
+    return this.filteredReadings.filter(
+      (reading) =>
+        !!reading.orderName?.trim() &&
+        this.customerKey(reading.orderName) === anchorKey,
+    );
+  }
+
   get allVisibleSelected(): boolean {
-    return this.filteredReadings.length > 0 &&
-      this.filteredReadings.every((reading) => this.isSelected(reading));
+    return this.selectableVisibleReadings.length > 0 &&
+      this.selectableVisibleReadings.every((reading) => this.isSelected(reading));
+  }
+
+  get someVisibleSelected(): boolean {
+    return this.selectableVisibleReadings.some((reading) => this.isSelected(reading));
   }
 
   get reportTotalHours(): number {
@@ -163,6 +187,7 @@ export class UnbilledReadingComponent implements OnInit {
           this.selectedReadingIds = new Set(
             [...this.selectedReadingIds].filter((id) => availableIds.has(id)),
           );
+          this.retainSingleCustomerSelection();
         }
         this.loadingReadings = false;
         this.changeDetectorRef.markForCheck();
@@ -227,11 +252,31 @@ export class UnbilledReadingComponent implements OnInit {
     return this.selectedReadingIds.has(String(reading.id));
   }
 
+  canSelectReading(reading: MachineReading): boolean {
+    const customerName = reading.orderName?.trim() ?? '';
+    return !!customerName &&
+      (!this.selectedCustomerName ||
+        this.customerKey(customerName) === this.customerKey(this.selectedCustomerName));
+  }
+
+  readingSelectionHint(reading: MachineReading): string {
+    if (!reading.orderName?.trim()) {
+      return 'This reading cannot be invoiced until a customer is assigned.';
+    }
+    if (
+      this.selectedCustomerName &&
+      this.customerKey(reading.orderName) !== this.customerKey(this.selectedCustomerName)
+    ) {
+      return `Only readings for ${this.selectedCustomerName} can be included in this invoice.`;
+    }
+    return `Select reading ${reading.id}`;
+  }
+
   toggleReading(reading: MachineReading): void {
     const id = String(reading.id);
     if (this.selectedReadingIds.has(id)) {
       this.selectedReadingIds.delete(id);
-    } else {
+    } else if (this.canSelectReading(reading)) {
       this.selectedReadingIds.add(id);
     }
   }
@@ -239,9 +284,9 @@ export class UnbilledReadingComponent implements OnInit {
   toggleVisibleReadings(): void {
     const updated = new Set(this.selectedReadingIds);
     if (this.allVisibleSelected) {
-      this.filteredReadings.forEach((reading) => updated.delete(String(reading.id)));
+      this.selectableVisibleReadings.forEach((reading) => updated.delete(String(reading.id)));
     } else {
-      this.filteredReadings.forEach((reading) => updated.add(String(reading.id)));
+      this.selectableVisibleReadings.forEach((reading) => updated.add(String(reading.id)));
     }
     this.selectedReadingIds = updated;
   }
@@ -249,6 +294,10 @@ export class UnbilledReadingComponent implements OnInit {
   openInvoiceModal(): void {
     if (this.selectedReadings.length === 0) {
       this.errorMessage = 'Select at least one reading to generate an invoice.';
+      return;
+    }
+    if (!this.getSelectedCustomerName(this.selectedReadings)) {
+      this.errorMessage = 'Select readings for one customer with a valid customer name.';
       return;
     }
     this.hourlyRate = null;
@@ -273,6 +322,10 @@ export class UnbilledReadingComponent implements OnInit {
     }
     if (this.selectedReadings.length === 0) {
       this.invoiceError = 'Select at least one reading.';
+      return;
+    }
+    if (!this.getSelectedCustomerName(this.selectedReadings)) {
+      this.invoiceError = 'Select readings for one customer with a valid customer name.';
       return;
     }
     if (
@@ -356,7 +409,11 @@ export class UnbilledReadingComponent implements OnInit {
     const invoiceHtml = this.buildInvoiceHtml();
     this.http.put(
       `${this.apiUrl}/api/invoice/save`,
-      { billedDate: this.formattedToday(), invoice: invoiceHtml },
+      {
+        billedDate: this.formattedToday(),
+        invoice: invoiceHtml,
+        customerName: this.getSelectedCustomerName(this.selectedReadings),
+      },
       { responseType: 'text' },
     ).subscribe({
       next: (response) => {
@@ -491,5 +548,38 @@ export class UnbilledReadingComponent implements OnInit {
     return Number.isFinite(leftNumber) && Number.isFinite(rightNumber)
       ? leftNumber - rightNumber
       : String(left).localeCompare(String(right));
+  }
+
+  private getSelectedCustomerName(readings: MachineReading[]): string {
+    const customerName = readings[0]?.orderName?.trim() ?? '';
+    if (!customerName) {
+      return '';
+    }
+
+    const customerKey = this.customerKey(customerName);
+    return readings.every(
+      (reading) => this.customerKey(reading.orderName ?? '') === customerKey,
+    )
+      ? customerName
+      : '';
+  }
+
+  private customerKey(customerName: string): string {
+    return customerName.trim().toLocaleLowerCase();
+  }
+
+  private retainSingleCustomerSelection(): void {
+    const customerName = this.getSelectedCustomerName(this.selectedReadings);
+    if (!customerName) {
+      this.selectedReadingIds.clear();
+      return;
+    }
+
+    const customerKey = this.customerKey(customerName);
+    this.selectedReadingIds = new Set(
+      this.selectedReadings
+        .filter((reading) => this.customerKey(reading.orderName ?? '') === customerKey)
+        .map((reading) => String(reading.id)),
+    );
   }
 }

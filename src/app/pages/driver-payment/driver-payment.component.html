@@ -28,6 +28,9 @@
         <span class="card-label">DRIVER</span>
         <h2>{{ driverName }}</h2>
       </div>
+      <button type="button" class="secondary-button" (click)="openLeaveModal()">
+        Leave Management
+      </button>
       <button type="button" class="primary-button" (click)="openPaymentModal()">
         + Add Payment
       </button>
@@ -199,6 +202,249 @@
           </button>
         </footer>
       </form>
+    </section>
+  </div>
+}
+
+@if (showLeaveModal) {
+  <div class="overlay leave-overlay" (click)="closeLeaveModal()">
+    <section
+      class="dialog leave-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="leaveDialogTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">DRIVER TIME OFF</span>
+          <h2 id="leaveDialogTitle">Leave Management</h2>
+        </div>
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Close leave management"
+          [disabled]="savingLeave || leaveBusyId !== null"
+          (click)="closeLeaveModal()"
+        >×</button>
+      </header>
+
+      <div class="leave-dialog-body">
+        @if (leaveError) {
+          <div class="alert alert-error" role="alert">{{ leaveError }}</div>
+        }
+        @if (leaveSuccess) {
+          <div class="alert alert-success" role="status">{{ leaveSuccess }}</div>
+        }
+
+        @if (showLeaveForm) {
+          <form class="leave-form" (ngSubmit)="submitLeaveRequest()">
+            <div class="leave-form-heading">
+              <div>
+                <span class="eyebrow">ADMIN REQUEST</span>
+                <h3>Apply leave for {{ driverName }}</h3>
+              </div>
+              <button type="button" class="text-button" (click)="closeLeaveForm()">Back to calendar</button>
+            </div>
+            @if (leaveFormError) {
+              <div class="alert alert-error" role="alert">{{ leaveFormError }}</div>
+            }
+            <div class="leave-form-grid">
+              <div class="form-field">
+                <label for="leaveType">Leave type</label>
+                <input
+                  id="leaveType"
+                  name="leaveType"
+                  type="text"
+                  [(ngModel)]="leaveForm.leaveType"
+                  placeholder="e.g. Casual Leave"
+                  [disabled]="savingLeave"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="leaveFromDate">From date</label>
+                <input
+                  id="leaveFromDate"
+                  name="leaveFromDate"
+                  type="date"
+                  [(ngModel)]="leaveForm.fromDate"
+                  [min]="leaveMinDate"
+                  [disabled]="savingLeave"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="leaveToDate">To date</label>
+                <input
+                  id="leaveToDate"
+                  name="leaveToDate"
+                  type="date"
+                  [(ngModel)]="leaveForm.toDate"
+                  [min]="leaveForm.fromDate || leaveMinDate"
+                  [disabled]="savingLeave"
+                  required
+                />
+              </div>
+              <div class="form-field leave-reason-field">
+                <label for="leaveReason">Reason</label>
+                <textarea
+                  id="leaveReason"
+                  name="leaveReason"
+                  [(ngModel)]="leaveForm.reason"
+                  rows="2"
+                  placeholder="Optional details"
+                  [disabled]="savingLeave"
+                ></textarea>
+              </div>
+            </div>
+            <div class="leave-form-actions">
+              <button type="button" class="secondary-button" [disabled]="savingLeave" (click)="closeLeaveForm()">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="primary-button"
+                [disabled]="savingLeave"
+              >
+                @if (savingLeave) {
+                  <span class="button-spinner" aria-hidden="true"></span>
+                  Submitting…
+                } @else {
+                  Apply Leave
+                }
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="leave-toolbar">
+            <button
+              type="button"
+              class="primary-button"
+              (click)="openLeaveForm()"
+            >+ Apply Leave</button>
+          </div>
+
+          <div class="leave-filters">
+            <div class="form-field">
+              <label for="leaveSearch">Search</label>
+              <input
+                id="leaveSearch"
+                name="leaveSearch"
+                type="search"
+                [(ngModel)]="leaveSearch"
+                placeholder="Driver, request ID, or leave type"
+              />
+            </div>
+            <div class="form-field">
+              <label for="leaveTypeFilter">Leave type</label>
+              <select id="leaveTypeFilter" name="leaveTypeFilter" [(ngModel)]="selectedLeaveType">
+                <option value="">All leave types</option>
+                @for (leaveType of leaveTypeOptions; track leaveType) {
+                  <option [value]="leaveType">{{ leaveType }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="leaveStatusFilter">Status</label>
+              <select id="leaveStatusFilter" name="leaveStatusFilter" [(ngModel)]="selectedLeaveStatus">
+                <option value="">All statuses</option>
+                <option value="OPEN">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="leave-summary" aria-label="Leave summary for selected month">
+            <div><strong>{{ monthLeaveRequests.length }}</strong><span>Requests</span></div>
+            <div><strong>{{ openLeaveCount }}</strong><span>Pending</span></div>
+            <div><strong>{{ approvedLeaveCount }}</strong><span>Approved</span></div>
+            <div><strong>{{ rejectedLeaveCount }}</strong><span>Rejected</span></div>
+            <div><strong>{{ cancelledLeaveCount }}</strong><span>Cancelled</span></div>
+          </div>
+
+          <div class="admin-remarks-field form-field">
+            <label for="leaveAdminRemarks">Admin remarks for approval or rejection (optional)</label>
+            <input
+              id="leaveAdminRemarks"
+              name="leaveAdminRemarks"
+              type="text"
+              [(ngModel)]="adminRemarks"
+              placeholder="Add a decision remark"
+              [disabled]="leaveBusyId !== null"
+            />
+          </div>
+
+          <div class="calendar-heading">
+            <button type="button" class="month-button" (click)="changeLeaveMonth(-1)" aria-label="Previous month">‹</button>
+            <h3>{{ leaveMonthTitle }}</h3>
+            <button type="button" class="month-button" (click)="changeLeaveMonth(1)" aria-label="Next month">›</button>
+          </div>
+
+          @if (loadingLeaves) {
+            <div class="table-state" role="status">
+              <span class="spinner" aria-hidden="true"></span>Loading leave calendar…
+            </div>
+          } @else {
+            <div class="calendar-scroll">
+              <div class="leave-calendar" aria-label="Driver leave calendar">
+                @for (weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; track weekday) {
+                  <div class="calendar-weekday">{{ weekday }}</div>
+                }
+                @for (day of calendarDays; track day.isoDate) {
+                  <div
+                    class="calendar-day"
+                    [class.outside-month]="!day.inCurrentMonth"
+                    [attr.aria-label]="formatLeaveDate(day.isoDate)"
+                  >
+                    <span class="calendar-date">{{ day.date.getDate() }}</span>
+                    <div class="calendar-events">
+                      @for (leave of leavesForDay(day); track leave.id) {
+                        <article class="calendar-leave" [class]="leaveStatusClass(leave.status)">
+                          <strong>{{ leave.driverName }}</strong>
+                          <span>{{ leave.leaveType }} · {{ leave.status }}</span>
+                          @if (isLeaveDetailDay(leave, day)) {
+                            <span>{{ leaveDayCount(leave) }} day{{ leaveDayCount(leave) === 1 ? '' : 's' }} · {{ leave.reason || 'No reason provided' }}</span>
+                            @if (leave.adminRemarks) {
+                              <span>Admin: {{ leave.adminRemarks }}</span>
+                            }
+                            @if (leave.status === 'OPEN') {
+                              <div class="leave-actions">
+                                <button
+                                  type="button"
+                                  class="approve-button"
+                                  [disabled]="leaveBusyId !== null"
+                                  (click)="updateLeaveStatus(leave, 'APPROVED')"
+                                >Approve</button>
+                                <button
+                                  type="button"
+                                  class="reject-button"
+                                  [disabled]="leaveBusyId !== null"
+                                  (click)="updateLeaveStatus(leave, 'REJECTED')"
+                                >Reject</button>
+                              </div>
+                            }
+                            @if (leave.status !== 'APPROVED') {
+                              <button
+                                type="button"
+                                class="delete-leave-button"
+                                [disabled]="leaveBusyId !== null"
+                                (click)="deleteLeaveRequest(leave)"
+                              >Delete request</button>
+                            }
+                          }
+                        </article>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
     </section>
   </div>
 }

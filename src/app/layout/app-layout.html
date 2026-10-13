@@ -232,4 +232,74 @@
       <router-outlet />
     </section>
   </main>
+
+  <button
+    class="chat-launcher"
+    type="button"
+    [attr.aria-expanded]="chatOpen()"
+    aria-controls="support-chat"
+    (click)="toggleChat()">
+    <span aria-hidden="true">✦</span>
+    <span>Chat</span>
+  </button>
+
+  @if (chatOpen()) {
+    <section
+      class="chat-window"
+      [class.chat-window-collapsed]="chatCollapsed()"
+      id="support-chat"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="chat-title">
+      <header class="chat-header">
+        <div>
+          <strong id="chat-title">Transport assistant</strong>
+          <span>We are here to help</span>
+        </div>
+        <button
+          class="chat-window-toggle"
+          type="button"
+          [attr.aria-label]="chatCollapsed() ? 'Expand chat window' : 'Collapse chat window'"
+          [attr.aria-expanded]="!chatCollapsed()"
+          (click)="toggleChatCollapsed()">
+          {{ chatCollapsed() ? '+' : '−' }}
+        </button>
+      </header>
+
+      @if (!chatCollapsed()) {
+        <div class="chat-body">
+          <div class="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
+            @if (chatMessages().length === 0) {
+              <p class="chat-welcome">
+                Hi! Ask a question about your transport operations. I am using a generic demo
+                response for now.
+              </p>
+            }
+            @for (message of chatMessages(); track $index) {
+              <p class="chat-message" [class.chat-message-user]="message.role === 'user'">
+                {{ message.text }}
+              </p>
+            }
+          </div>
+
+          @if (chatError()) {
+            <p class="chat-error" role="alert">{{ chatError() }}</p>
+          }
+
+          <form class="chat-form" (submit)="$event.preventDefault(); sendChatMessage()">
+            <label class="visually-hidden" for="chat-message">Your message</label>
+            <input
+              id="chat-message"
+              type="text"
+              name="chatMessage"
+              [value]="chatDraft()"
+              (input)="updateChatDraft($event)"
+              placeholder="Type your message..."
+              autocomplete="off">
+            <button type="submit" [disabled]="!chatDraft().trim()">Send</button>
+          </form>
+        </div>
+      }
+    </section>
+  }
 </div>

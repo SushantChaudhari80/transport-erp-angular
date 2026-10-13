@@ -71,9 +71,10 @@
               <th class="check-cell">
                 <input
                   type="checkbox"
-                  aria-label="Select all visible trips"
+                  aria-label="Select visible trips for one customer"
                   [checked]="allVisibleSelected"
-                  [indeterminate]="selectedTripIds.size > 0 && !allVisibleSelected"
+                  [indeterminate]="someVisibleSelected && !allVisibleSelected"
+                  [disabled]="selectableVisibleTrips.length === 0"
                   (change)="toggleVisibleTrips()"
                 />
               </th>
@@ -95,8 +96,10 @@
                 <td class="check-cell">
                   <input
                     type="checkbox"
-                    [attr.aria-label]="'Select trip ' + trip.id"
+                    [attr.aria-label]="tripSelectionHint(trip)"
+                    [attr.title]="tripSelectionHint(trip)"
                     [checked]="isTripSelected(trip)"
+                    [disabled]="!canSelectTrip(trip) && !isTripSelected(trip)"
                     (change)="toggleTrip(trip)"
                   />
                 </td>
@@ -143,7 +146,8 @@
       }
 
       <p class="modal-description">
-        The invoice uses the business profile on file. After it is saved, the selected trips will be marked as billed.
+        Invoice customer: <strong>{{ selectedCustomerName }}</strong>. The invoice uses the business profile on file.
+        After it is saved, the selected trips will be marked as billed.
       </p>
 
       <div class="invoice-fields">

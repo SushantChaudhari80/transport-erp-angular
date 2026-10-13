@@ -6,7 +6,8 @@ import { Host } from '../../core/services/host';
 
 interface Invoice {
   id: number | string;
-  billedDate?: string;
+  billedDate?: string | null;
+  customerName?: string | null;
 }
 
 function isInvoice(value: unknown): value is Invoice {
@@ -16,7 +17,12 @@ function isInvoice(value: unknown): value is Invoice {
   const invoice = value as Record<string, unknown>;
   return (
     (typeof invoice['id'] === 'number' || typeof invoice['id'] === 'string') &&
-    (invoice['billedDate'] === undefined || typeof invoice['billedDate'] === 'string')
+    (invoice['billedDate'] === undefined ||
+      invoice['billedDate'] === null ||
+      typeof invoice['billedDate'] === 'string') &&
+    (invoice['customerName'] === undefined ||
+      invoice['customerName'] === null ||
+      typeof invoice['customerName'] === 'string')
   );
 }
 
@@ -49,7 +55,7 @@ export class InvoicesComponent implements OnInit {
       return this.invoices;
     }
     return this.invoices.filter((invoice) =>
-      [invoice.id, invoice.billedDate].some((value) =>
+      [invoice.id, invoice.billedDate, invoice.customerName].some((value) =>
         String(value ?? '').toLowerCase().includes(query),
       ),
     );

@@ -73,6 +73,7 @@
             <tr>
               <th>ID</th>
               <th>Date</th>
+              <th>Customer name</th>
               <th>Vehicle Number</th>
               <th>Fuel Pump</th>
               <th>Rate / L</th>
@@ -85,6 +86,7 @@
               <tr>
                 <td><span class="record-id">#{{ record.id }}</span></td>
                 <td>{{ record.date || '—' }}</td>
+                <td>{{ record.orderName || '—' }}</td>
                 <td><strong class="vehicle-number">{{ record.machineNumber || '—' }}</strong></td>
                 <td>{{ record.petrolPump || '—' }}</td>
                 <td>{{ record.fuelRate === null || record.fuelRate === undefined ? '—' : '₹' + formatNumber(+record.fuelRate) }}</td>
@@ -95,7 +97,7 @@
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="5">Report total</td>
+              <td colspan="6">Report total</td>
               <td>{{ formatNumber(totalFuel) }} L</td>
               <td>₹{{ formatNumber(totalAmount) }}</td>
             </tr>

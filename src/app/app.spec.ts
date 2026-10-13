@@ -10,6 +10,11 @@ import { LoginComponent } from './pages/login/login';
 
 describe('App routes', () => {
   const apiUrl = Host.API_URL.replace(/\/+$/, '');
+  const chatHistoryKey = 'transport-erp-chat-history';
+
+  afterEach(() => {
+    window.localStorage.removeItem(chatHistoryKey);
+  });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -164,6 +169,11 @@ describe('App routes', () => {
     });
     await harness.fixture.whenStable();
 
+    window.localStorage.setItem(chatHistoryKey, JSON.stringify([
+      { role: 'user', text: 'Where are my trips?' },
+      { role: 'assistant', text: 'This is a saved reply.' },
+    ]));
+
     const profileButton = harness.fixture.nativeElement.querySelector(
       '.profile-toggle',
     ) as HTMLButtonElement;
@@ -180,5 +190,50 @@ describe('App routes', () => {
     await harness.fixture.whenStable();
 
     expect(harness.fixture.nativeElement.querySelector('.login-page')).not.toBeNull();
+    expect(window.localStorage.getItem(chatHistoryKey)).toBeNull();
+  });
+
+  it('should show the chat widget and persist user queries with a generic reply', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/dashboard');
+
+    const httpTesting = TestBed.inject(HttpTestingController);
+    httpTesting.expectOne(`${apiUrl}/api/customers/dashboard/utilitis`).flush({
+      totalOrders: 0,
+      totalVehicales: 0,
+      activeOrders: 0,
+      pendingOrders: 0,
+      completeOrders: 0,
+      billedTreeps: 0,
+      unbilledTreeps: 0,
+      diesel: 0,
+      totalDivers: 0,
+    });
+    httpTesting.expectOne(`${apiUrl}/api/customers/get`).flush({ name: 'Operator' });
+    await harness.fixture.whenStable();
+
+    const launcher = harness.fixture.nativeElement.querySelector(
+      '.chat-launcher',
+    ) as HTMLButtonElement;
+    expect(launcher).not.toBeNull();
+    launcher.click();
+    harness.detectChanges();
+
+    const input = harness.fixture.nativeElement.querySelector(
+      '#chat-message',
+    ) as HTMLInputElement;
+    input.value = 'How many vehicles are active?';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    harness.detectChanges();
+    (harness.fixture.nativeElement.querySelector('.chat-form') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    harness.detectChanges();
+
+    const history = JSON.parse(window.localStorage.getItem(chatHistoryKey) ?? '[]');
+    expect(history).toHaveLength(2);
+    expect(history[0]).toEqual({ role: 'user', text: 'How many vehicles are active?' });
+    expect(history[1].role).toBe('assistant');
+    expect(history[1].text).toContain('demo assistant');
+    expect(harness.fixture.nativeElement.textContent).toContain('How many vehicles are active?');
   });
 });

@@ -1,0 +1,453 @@
+<main class="portfolio-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">MANAGEMENT OVERVIEW</span>
+      <h1>Customer Portfolio</h1>
+      <p class="page-subtitle">Customer business performance and financial overview.</p>
+    </div>
+    <div class="header-actions">
+      <label class="control-field">
+        <span>Customer</span>
+        <select aria-label="Select customer" [(ngModel)]="selectedCustomer"
+          (ngModelChange)="selectCustomer()" [disabled]="loadingCustomers">
+          <option value="">{{ loadingCustomers ? 'Loading customers…' : 'Select a customer' }}</option>
+          @for (customer of customers; track customer) {
+            <option [value]="customer">{{ customer }}</option>
+          }
+        </select>
+      </label>
+      @if (portfolio && orderChoices.length > 0) {
+        <label class="control-field">
+          <span>Order activity</span>
+          <select aria-label="Filter portfolio by order dates" [(ngModel)]="selectedOrderIndex"
+            (ngModelChange)="onOrderSelectionChanged()">
+            <option value="">All customer orders</option>
+            @for (order of orderChoices; track order.value) {
+              <option [value]="order.value" [disabled]="order.disabled">{{ order.label }}</option>
+            }
+          </select>
+        </label>
+      }
+      <label class="control-field date-preset">
+        <span>Activity period</span>
+        <select aria-label="Filter activity by date range" [ngModel]="datePreset"
+          (ngModelChange)="setDatePreset($event)">
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="last7">Last 7 days</option>
+          <option value="last30">Last 30 days</option>
+          <option value="thisMonth">This month</option>
+          <option value="previousMonth">Previous month</option>
+          <option value="custom">Custom range</option>
+        </select>
+      </label>
+      @if (datePreset === 'custom') {
+        <label class="control-field date-input">
+          <span>From</span>
+          <input aria-label="Start date" type="date" [(ngModel)]="fromDate" (ngModelChange)="onCustomDateChanged()" />
+        </label>
+        <label class="control-field date-input">
+          <span>To</span>
+          <input aria-label="End date" type="date" [(ngModel)]="toDate" (ngModelChange)="onCustomDateChanged()" />
+        </label>
+      }
+      <button class="secondary-button" type="button" [disabled]="loadingPortfolio || loadingCustomers"
+        (click)="refresh()">Refresh</button>
+      <button class="secondary-button" type="button" [disabled]="!portfolio || (activeSection !== 'overview' && activeRows.length === 0)"
+        (click)="exportReport()">Export report</button>
+    </div>
+  </header>
+
+  @if (selectedCustomer) {
+    <div class="customer-strip">
+      <div>
+        <span class="eyebrow">SELECTED CUSTOMER</span>
+        <strong>{{ selectedCustomer }}</strong>
+        <span class="machine-list">Vehicles: {{ customerMachineNumbers }}</span>
+      </div>
+      <div class="refresh-info">
+        @if (lastRefreshed) {
+          <span>Last refreshed {{ lastRefreshed | date:'dd MMM yyyy, HH:mm' }}</span>
+        }
+        <span>{{ fromDate || toDate ? 'Date filters use each record’s event date.' : 'Showing all available activity.' }}</span>
+      </div>
+    </div>
+  }
+
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" aria-label="Dismiss error" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  @if (loadingPortfolio) {
+    <section class="loading-panel" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <div><strong>Loading customer portfolio</strong><span>Gathering orders, payments, vehicles and operational activity…</span></div>
+    </section>
+  } @else if (!selectedCustomer) {
+    <section class="empty-panel">
+      <span class="empty-icon" aria-hidden="true">◎</span>
+      <h2>Select a customer to get started</h2>
+      <p>Choose a customer from the orders list to view their portfolio and business activity.</p>
+      @if (!loadingCustomers && customers.length === 0 && !errorMessage) {
+        <small>No customer names are available in the current order data.</small>
+      }
+    </section>
+  } @else if (portfolio) {
+    <nav class="section-tabs" aria-label="Portfolio sections">
+      @for (section of sections; track section.id) {
+        <button type="button" [class.active]="activeSection === section.id"
+          [attr.aria-current]="activeSection === section.id ? 'page' : null"
+          (click)="setSection(section.id)">{{ section.label }}</button>
+      }
+    </nav>
+
+    <div class="table-toolbar">
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <span class="visually-hidden">Search current portfolio section</span>
+        <input type="search" [(ngModel)]="searchTerm" (ngModelChange)="onFiltersChanged()"
+          placeholder="Search {{ activeSection === 'overview' ? 'portfolio' : activeSection.replace('-', ' ') }}…" />
+      </label>
+      @if (activeSection === 'trips' || activeSection === 'readings') {
+        <label class="status-filter">
+          <span class="visually-hidden">Filter billing status</span>
+          <select aria-label="Filter billing status" [(ngModel)]="billingFilter"
+            (ngModelChange)="onFiltersChanged()">
+            <option value="all">All billing statuses</option>
+            <option value="billed">Billed</option>
+            <option value="unbilled">Unbilled</option>
+          </select>
+        </label>
+      }
+      @if (searchTerm || fromDate || toDate || billingFilter !== 'all') {
+        <button class="secondary-button" type="button" (click)="clearFilters()">Clear filters</button>
+      }
+    </div>
+    @if (invalidDateRange) {
+      <div class="alert alert-error" role="alert">The start date must be on or before the end date.</div>
+    }
+
+    @if (activeSection === 'overview') {
+      <section class="kpi-grid" aria-label="Customer portfolio key performance indicators">
+        <article class="kpi-card blue">
+          <span class="kpi-icon" aria-hidden="true">#</span>
+          <div><span>Total orders</span><strong>{{ metrics?.orderCount ?? 0 }}</strong><small>Order date in selected period</small></div>
+        </article>
+        <article class="kpi-card amber">
+          <span class="kpi-icon" aria-hidden="true">₹</span>
+          <div><span>Total order value</span><strong>{{ formatMoney(metrics?.totalOrderValue) }}</strong><small>{{ formatNumber(metrics?.totalMachineHours) }} machine hours × ₹2,500 + trip totals</small></div>
+        </article>
+        <article class="kpi-card amber">
+          <span class="kpi-icon" aria-hidden="true">↳</span>
+          <div><span>Order advances</span><strong>{{ formatMoney(metrics?.orderAdvance) }}</strong><small>Advance recorded across matching orders</small></div>
+        </article>
+        <article class="kpi-card purple">
+          <span class="kpi-icon" aria-hidden="true">▤</span>
+          <div><span>Total invoice count</span><strong>{{ metrics?.invoiceCount ?? 0 }}</strong><small>Invoices dated in selected period</small></div>
+        </article>
+        <article class="kpi-card green">
+          <span class="kpi-icon" aria-hidden="true">↓</span>
+          <div><span>Incoming payments</span><strong>{{ formatMoney(metrics?.customerPayments) }}</strong><small>{{ filteredPayments.length }} customer payment records</small></div>
+        </article>
+        <article class="kpi-card rose">
+          <span class="kpi-icon" aria-hidden="true">◷</span>
+          <div><span>Outstanding balance</span><strong>{{ formatMoney(metrics?.outstandingBalance) }}</strong><small>Total order value − incoming payments</small></div>
+        </article>
+        <article class="kpi-card violet">
+          <span class="kpi-icon" aria-hidden="true">↗</span>
+          <div><span>Driver payment volume</span><strong>{{ formatMoney(metrics?.driverPaymentVolume) }}</strong><small>{{ metrics?.driverPaymentTransactions ?? 0 }} recorded transactions</small></div>
+        </article>
+        <article class="kpi-card orange">
+          <span class="kpi-icon" aria-hidden="true">▧</span>
+          <div><span>Voucher amount</span><strong>{{ formatMoney(metrics?.voucherAmount) }}</strong><small>{{ metrics?.voucherCount ?? 0 }} vouchers · shown separately</small></div>
+        </article>
+        <article class="kpi-card slate">
+          <span class="kpi-icon" aria-hidden="true">−</span>
+          <div><span>Operational expenses</span><strong>{{ formatMoney(metrics?.totalOperationalExpenses) }}</strong><small>Expense classifications are not provided</small></div>
+        </article>
+        <article class="kpi-card orange">
+          <span class="kpi-icon" aria-hidden="true">L</span>
+          <div><span>Recorded fuel (L)</span><strong>{{ formatFuelVolume(metrics?.recordedFuelLiters) }}</strong><small>Diesel total across {{ metrics?.machineReadingCount ?? 0 }} machine readings and {{ metrics?.dieselFuelEntries ?? 0 }} fuel entries</small></div>
+        </article>
+        <article class="kpi-card blue">
+          <span class="kpi-icon" aria-hidden="true">T</span>
+          <div><span>Dumper trips</span><strong>{{ metrics?.dumperTripCount ?? 0 }}</strong><small>{{ metrics?.billedTrips ?? 0 }} billed · {{ metrics?.unbilledTrips ?? 0 }} unbilled</small></div>
+        </article>
+        <article class="kpi-card cyan">
+          <span class="kpi-icon" aria-hidden="true">M</span>
+          <div><span>Machine readings</span><strong>{{ metrics?.machineReadingCount ?? 0 }}</strong><small>Fuel-only entries excluded from reading count</small></div>
+        </article>
+        <article class="kpi-card green">
+          <span class="kpi-icon" aria-hidden="true">✓</span>
+          <div><span>Billed trips</span><strong>{{ metrics?.billedTrips ?? 0 }}</strong><small>Trip records billed in selected period</small></div>
+        </article>
+        <article class="kpi-card amber">
+          <span class="kpi-icon" aria-hidden="true">…</span>
+          <div><span>Unbilled trips</span><strong>{{ metrics?.unbilledTrips ?? 0 }}</strong><small>Not marked billed by the API</small></div>
+        </article>
+        <article class="kpi-card green">
+          <span class="kpi-icon" aria-hidden="true">✓</span>
+          <div><span>Billed readings</span><strong>{{ metrics?.billedReadings ?? 0 }}</strong><small>Fuel-only entries excluded</small></div>
+        </article>
+        <article class="kpi-card amber">
+          <span class="kpi-icon" aria-hidden="true">…</span>
+          <div><span>Unbilled readings</span><strong>{{ metrics?.unbilledReadings ?? 0 }}</strong><small>Not marked billed by the API</small></div>
+        </article>
+        <article class="kpi-card slate">
+          <span class="kpi-icon" aria-hidden="true">≈</span>
+          <div><span>Estimated net profit</span><strong>{{ formatMoney(metrics?.estimatedProfit) }}</strong><small>Order value − driver payments − vouchers − fuel at ₹98/L</small></div>
+        </article>
+      </section>
+
+      <div class="insight-note" role="note">
+        <strong>Estimate assumptions</strong>
+        <span>Machine hours are calculated as end reading minus start reading; each hour is valued at ₹2,500. Trip totals use total payment. Estimated net profit subtracts driver payment volume, vouchers, and recorded diesel at ₹98/L.</span>
+      </div>
+
+      <section class="chart-grid" aria-label="Portfolio activity charts">
+        <article class="content-card chart-card">
+          <header><div><span class="eyebrow">CASH RECEIVED</span><h2>Customer payments by date</h2></div></header>
+          @if (filteredPayments.length) {
+            <div class="chart-area"><canvas #paymentChartCanvas aria-label="Customer payments by date chart"></canvas></div>
+          } @else {
+            <div class="chart-empty">No customer payment records in this date range.</div>
+          }
+        </article>
+        <article class="content-card chart-card">
+          <header><div><span class="eyebrow">BILLING STATUS</span><h2>Trips and machine readings</h2></div></header>
+          @if ((metrics?.dumperTripCount ?? 0) + (metrics?.machineReadingCount ?? 0)) {
+            <div class="chart-area"><canvas #activityChartCanvas aria-label="Billed and unbilled operations chart"></canvas></div>
+          } @else {
+            <div class="chart-empty">No trips or readings in this date range.</div>
+          }
+        </article>
+      </section>
+
+      <section class="content-card timeline-card">
+        <header class="section-heading">
+          <div><span class="eyebrow">ORDER LIFECYCLE</span><h2>Customer order timeline</h2></div>
+          <button type="button" class="text-button" (click)="setSection('orders')">View all orders</button>
+        </header>
+        @if (filteredOrders.length) {
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Order</th><th>Order date</th><th>Delivery date</th><th>Vehicles</th><th>Status</th><th>Advance</th><th>Duration</th></tr></thead>
+              <tbody>
+                @for (order of filteredOrders.slice(0, 5); track order['id']) {
+                  <tr>
+                    <td><strong>#{{ value(order, 'id') }}</strong></td>
+                    <td>{{ formatDate(order['order_date']) }}</td>
+                    <td>{{ formatDate(order['delivery_date']) }}</td>
+                    <td>{{ value(order, 'machins') }}</td>
+                    <td><span class="status-pill">{{ value(order, 'status') }}</span></td>
+                    <td>{{ formatMoney(toNumber(order['advance'])) }}</td>
+                    <td>{{ duration(order) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="table-empty">No customer orders in this date range.</div>
+        }
+      </section>
+    }
+
+    @if (activeSection === 'orders') {
+      <section class="content-card data-section">
+        <header class="section-heading"><div><span class="eyebrow">CUSTOMER CONTRACTS</span><h2>Orders</h2></div><span class="record-count">{{ filteredOrders.length }} orders</span></header>
+        @if (filteredOrders.length) {
+          <div class="table-scroll"><table>
+            <thead><tr>
+              <th><button (click)="sortBy('id')">Order ID ↕</button></th>
+              <th><button (click)="sortBy('order_date')">Order date ↕</button></th>
+              <th><button (click)="sortBy('delivery_date')">Delivery date ↕</button></th>
+              <th>Customer</th><th>Vehicles</th><th><button (click)="sortBy('advance')">Advance ↕</button></th>
+              <th>Status</th><th>Duration</th><th>Linked records</th>
+            </tr></thead>
+            <tbody>
+              @for (order of paged(filteredOrders, 'orders'); track order['id']) {
+                <tr>
+                  <td>#{{ value(order, 'id') }}</td><td>{{ formatDate(order['order_date']) }}</td>
+                  <td>{{ formatDate(order['delivery_date']) }}</td><td>{{ value(order, 'customer_name') }}</td>
+                  <td>{{ value(order, 'machins') }}</td><td>{{ formatMoney(toNumber(order['advance'])) }}</td>
+                  <td><span class="status-pill">{{ value(order, 'status') }}</span></td><td>{{ duration(order) }}</td>
+                  <td>{{ orderOperationalActivity(order) }} · Invoice/payment links unavailable</td>
+                </tr>
+              }
+            </tbody>
+          </table></div>
+          <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredOrders, key: 'orders' }"></ng-container>
+        } @else { <div class="table-empty">No orders match the current filters.</div> }
+      </section>
+    }
+
+    @if (activeSection === 'billing') {
+      <div class="detail-grid">
+        <section class="content-card data-section">
+          <header class="section-heading"><div><span class="eyebrow">BILLING RECORDS</span><h2>Invoices</h2></div><span class="record-count">{{ filteredInvoices.length }} invoices</span></header>
+          <p class="section-note">The API stores invoice markup rather than a structured invoice amount. Payment-to-invoice allocation is not available.</p>
+          @if (filteredInvoices.length) {
+            <div class="table-scroll"><table>
+              <thead><tr><th><button (click)="sortBy('id')">Invoice number ↕</button></th><th><button (click)="sortBy('billed_date')">Invoice date ↕</button></th><th>Customer</th><th>Amount</th></tr></thead>
+              <tbody>
+                @for (invoice of paged(filteredInvoices, 'invoices'); track invoice['id']) {
+                  <tr><td>{{ value(invoice, 'id') }}</td><td>{{ formatDate(invoice['billed_date']) }}</td><td>{{ value(invoice, 'customer_name') }}</td><td>Not available</td></tr>
+                }
+              </tbody>
+            </table></div>
+            <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredInvoices, key: 'invoices' }"></ng-container>
+          } @else { <div class="table-empty">No invoices match the current filters.</div> }
+        </section>
+        <section class="content-card data-section">
+          <header class="section-heading"><div><span class="eyebrow">RECEIPTS</span><h2>Customer payments</h2></div><strong>{{ formatMoney(metrics?.customerPayments) }}</strong></header>
+          @if (filteredPayments.length) {
+            <div class="table-scroll"><table>
+              <thead><tr><th><button (click)="sortBy('id')">Payment ID ↕</button></th><th><button (click)="sortBy('payment_date')">Payment date ↕</button></th><th>Customer</th><th><button (click)="sortBy('payment')">Amount ↕</button></th></tr></thead>
+              <tbody>
+                @for (payment of paged(filteredPayments, 'payments'); track payment['id']) {
+                  <tr><td>{{ value(payment, 'id') }}</td><td>{{ formatDate(payment['payment_date']) }}</td><td>{{ value(payment, 'customer_name') }}</td><td>{{ formatMoney(toNumber(payment['payment'])) }}</td></tr>
+                }
+              </tbody>
+            </table></div>
+            <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredPayments, key: 'payments' }"></ng-container>
+          } @else { <div class="table-empty">No customer payments match the current filters.</div> }
+        </section>
+      </div>
+    }
+
+    @if (activeSection === 'fleet') {
+      <div class="detail-grid">
+        <section class="content-card data-section">
+          <header class="section-heading"><div><span class="eyebrow">REGISTERED FLEET</span><h2>Vehicles</h2></div><span class="record-count">{{ filteredVehicles.length }} vehicles</span></header>
+          @if (filteredVehicles.length) {
+            <div class="table-scroll"><table>
+              <thead><tr><th>Registration</th><th>Company</th><th>Type</th><th>Assigned drivers</th><th>Related activity</th><th>Voucher activity</th></tr></thead>
+              <tbody>
+                @for (vehicle of paged(filteredVehicles, 'vehicles'); track vehicle['id']) {
+                  <tr><td><strong>{{ value(vehicle, 'machine_number') }}</strong></td><td>{{ value(vehicle, 'company') }}</td><td>{{ value(vehicle, 'v_type') }}</td><td>{{ vehicleDrivers(vehicle) }}</td><td>{{ vehicleActivity(vehicle['machine_number']) }}</td><td>{{ voucherActivity(vehicle['machine_number']) }}</td></tr>
+                }
+              </tbody>
+            </table></div>
+            <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredVehicles, key: 'vehicles' }"></ng-container>
+          } @else { <div class="table-empty">No vehicles are associated with this customer.</div> }
+        </section>
+        <section class="content-card data-section">
+          <header class="section-heading"><div><span class="eyebrow">OPERATORS</span><h2>Drivers</h2></div><span class="record-count">{{ filteredDrivers.length }} drivers</span></header>
+          <p class="section-note">Sensitive identity and license data are intentionally omitted.</p>
+          @if (filteredDrivers.length) {
+            <div class="table-scroll"><table>
+              <thead><tr><th>Driver</th><th>Vehicle</th><th>Salary</th><th>Recorded payment volume</th></tr></thead>
+              <tbody>
+                @for (driver of paged(filteredDrivers, 'drivers'); track driver['id']) {
+                  <tr><td>{{ value(driver, 'driver_name') }}</td><td>{{ value(driver, 'machine_number') }}</td><td>{{ formatMoney(toNumber(driver['driver_salary'])) }}</td><td>{{ formatMoney(driverPaymentsFor(driver['driver_name'])) }}</td></tr>
+                }
+              </tbody>
+            </table></div>
+            <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredDrivers, key: 'drivers' }"></ng-container>
+          } @else { <div class="table-empty">No drivers are associated with this customer.</div> }
+        </section>
+      </div>
+    }
+
+    @if (activeSection === 'trips') {
+      <section class="content-card data-section">
+        <header class="section-heading"><div><span class="eyebrow">DUMPER OPERATIONS</span><h2>Dumper trips</h2></div><span class="record-count">{{ filteredTrips.length }} trips</span></header>
+        @if (filteredTrips.length) {
+          <div class="table-scroll"><table>
+            <thead><tr><th><button (click)="sortBy('id')">Trip ID ↕</button></th><th><button (click)="sortBy('create_date')">Trip date ↕</button></th><th>Vehicle</th><th>Item</th><th>Diesel</th><th>Advance</th><th>Quantity</th><th>Rate</th><th>Total payment</th><th>Billing</th><th>Submitted by</th></tr></thead>
+            <tbody>
+              @for (trip of paged(filteredTrips, 'trips'); track trip['id']) {
+                <tr><td>#{{ value(trip, 'id') }}</td><td>{{ formatDate(trip['create_date']) }}</td><td>{{ value(trip, 'selected_vehicle') }}</td><td>{{ value(trip, 'item') }}</td><td>{{ formatMoney(toNumber(trip['diesel'])) }}</td><td>{{ formatMoney(toNumber(trip['advance'])) }}</td><td>{{ value(trip, 'soil_brass') }}</td><td>{{ formatMoney(toNumber(trip['soil_rate'])) }}</td><td>{{ formatMoney(toNumber(trip['total_payment'])) }}</td><td><span class="status-pill" [class.status-billed]="billedStatus(trip['is_billed']) === 'Billed'">{{ billedStatus(trip['is_billed']) }}</span></td><td>{{ value(trip, 'submitted_by') }}</td></tr>
+              }
+            </tbody>
+          </table></div>
+          <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredTrips, key: 'trips' }"></ng-container>
+        } @else { <div class="table-empty">No dumper trips match the current filters.</div> }
+      </section>
+    }
+
+    @if (activeSection === 'readings') {
+      <section class="content-card data-section">
+        <header class="section-heading"><div><span class="eyebrow">MACHINE ACTIVITY</span><h2>Machine readings and fuel entries</h2></div><span class="record-count">{{ filteredReadings.length }} readings · {{ filteredFuelEntries.length }} fuel entries</span></header>
+        <p class="section-note">Fuel-only entries are identified by null driver and billing fields plus a petrol pump and fuel rate. They are excluded from billed/unbilled machine-reading totals.</p>
+        @if (readingRows.length) {
+          <div class="table-scroll"><table>
+            <thead><tr><th><button (click)="sortBy('reading_date')">Date ↕</button></th><th>Entry type</th><th>Vehicle</th><th>Driver</th><th>Start</th><th>End</th><th>Usage</th><th>Diesel (L)</th><th>Fuel rate</th><th>Billing</th><th>Maintenance</th></tr></thead>
+            <tbody>
+              @for (reading of paged(readingRows, 'readings'); track reading['id']) {
+                <tr><td>{{ formatDate(reading['reading_date']) }}</td><td>{{ readingKind(reading) }}</td><td>{{ value(reading, 'machine_number') }}</td><td>{{ value(reading, 'driver_name') }}</td><td>{{ value(reading, 'start_reading') }}</td><td>{{ value(reading, 'end_reading') }}</td><td>{{ readingUsage(reading) }}</td><td>{{ value(reading, 'diesel') }}</td><td>{{ reading['fuel_rate'] === null || reading['fuel_rate'] === undefined ? '—' : formatMoney(toNumber(reading['fuel_rate'])) }}</td><td><span class="status-pill" [class.status-billed]="billedStatus(reading['billed']) === 'Billed'">{{ readingKind(reading) === 'Fuel entry' ? 'Fuel record' : billedStatus(reading['billed']) }}</span></td><td>{{ value(reading, 'maintenance') }}</td></tr>
+              }
+            </tbody>
+          </table></div>
+          <ng-container *ngTemplateOutlet="pager; context: { $implicit: readingRows, key: 'readings' }"></ng-container>
+        } @else { <div class="table-empty">No machine readings or fuel entries match the current filters.</div> }
+      </section>
+    }
+
+    @if (activeSection === 'driver-payments') {
+      <section class="content-card data-section">
+        <header class="section-heading"><div><span class="eyebrow">DRIVER LEDGER</span><h2>Driver payments</h2></div><strong>{{ formatMoney(metrics?.driverPaymentVolume) }}</strong></header>
+        <p class="section-note">The API transaction labels are preserved as recorded; the amount is shown as transaction volume, not net expense.</p>
+        <div class="payment-summaries">
+          <section aria-label="Driver payment totals by driver">
+            <h3>Totals by driver</h3>
+            @for (summary of driverPaymentTotalsByDriver; track summary.label) {
+              <div><span>{{ summary.label }}</span><strong>{{ formatMoney(summary.amount) }}</strong><small>{{ summary.count }} records</small></div>
+            } @empty { <p>No driver payment totals are available.</p> }
+          </section>
+          <section aria-label="Driver payment totals by date">
+            <h3>Totals by payment date</h3>
+            @for (summary of driverPaymentTotalsByDate; track summary.label) {
+              <div><span>{{ summary.label }}</span><strong>{{ formatMoney(summary.amount) }}</strong><small>{{ summary.count }} records</small></div>
+            } @empty { <p>No driver payment totals are available.</p> }
+          </section>
+        </div>
+        @if (filteredDriverPayments.length) {
+          <div class="table-scroll"><table>
+            <thead><tr><th><button (click)="sortBy('payment_date')">Date ↕</button></th><th>Driver</th><th>Vehicle</th><th>Transaction</th><th>Amount</th><th>Comment</th></tr></thead>
+            <tbody>
+              @for (payment of paged(filteredDriverPayments, 'driver-payments'); track payment['id']) {
+                <tr><td>{{ formatDate(payment['payment_date']) }}</td><td>{{ value(payment, 'driver_name') }}</td><td>{{ driverVehicle(payment['driver_name']) }}</td><td>{{ value(payment, 'transaction') }}</td><td>{{ formatMoney(toNumber(payment['amount'])) }}</td><td>{{ value(payment, 'comment') }}</td></tr>
+              }
+            </tbody>
+          </table></div>
+          <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredDriverPayments, key: 'driver-payments' }"></ng-container>
+        } @else { <div class="table-empty">No driver payment records match the current filters.</div> }
+      </section>
+    }
+
+    @if (activeSection === 'vouchers') {
+      <section class="content-card data-section">
+        <header class="section-heading"><div><span class="eyebrow">EXPENSE DOCUMENTS</span><h2>Vouchers</h2></div><strong>{{ formatMoney(metrics?.voucherAmount) }}</strong></header>
+        <p class="section-note">Voucher amounts are kept separate from operational expenses because expense eligibility is not included in the API.</p>
+        @if (filteredVouchers.length) {
+          <div class="table-scroll"><table>
+            <thead><tr><th><button (click)="sortBy('id')">Voucher ID ↕</button></th><th><button (click)="sortBy('create_date')">Date ↕</button></th><th>Vehicle</th><th>Driver</th><th>Amount</th><th>Comment</th></tr></thead>
+            <tbody>
+              @for (voucher of paged(filteredVouchers, 'vouchers'); track voucher['id']) {
+                <tr><td>{{ value(voucher, 'id') }}</td><td>{{ formatDate(voucher['create_date']) }}</td><td>{{ value(voucher, 'machine_number') }}</td><td>{{ value(voucher, 'driver_name') }}</td><td>{{ formatMoney(toNumber(voucher['amount'])) }}</td><td>{{ value(voucher, 'user_comment') }}</td></tr>
+              }
+            </tbody>
+          </table></div>
+          <ng-container *ngTemplateOutlet="pager; context: { $implicit: filteredVouchers, key: 'vouchers' }"></ng-container>
+        } @else { <div class="table-empty">No vouchers match the current filters.</div> }
+      </section>
+    }
+  }
+</main>
+
+<ng-template #pager let-rows let-key="key">
+  <footer class="pagination">
+    <span>{{ rows.length }} records · Page {{ pageNumber(key) + 1 }} of {{ pageCount(rows, key) }}</span>
+    <div>
+      <button type="button" class="secondary-button" [disabled]="pageNumber(key) === 0"
+        (click)="changePage(key, -1, rows)">Previous</button>
+      <button type="button" class="secondary-button" [disabled]="pageNumber(key) + 1 >= pageCount(rows, key)"
+        (click)="changePage(key, 1, rows)">Next</button>
+    </div>
+  </footer>
+</ng-template>

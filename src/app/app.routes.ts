@@ -151,6 +151,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'portfolio',
+        loadComponent: () =>
+          import('./pages/portfolio/portfolio.component').then(
+            ({ PortfolioComponent }) => PortfolioComponent,
+          ),
+      },
+      {
         path: 'support',
         loadComponent: () =>
           import('./pages/support/support.component').then(

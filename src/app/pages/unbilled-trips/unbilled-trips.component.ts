@@ -112,9 +112,33 @@ export class UnbilledTripsComponent implements OnInit {
     return this.trips.filter((trip) => this.selectedTripIds.has(String(trip.id)));
   }
 
+  get selectedCustomerName(): string {
+    return this.selectedTrips[0]?.customerName?.trim() ?? '';
+  }
+
+  get selectableVisibleTrips(): UnbilledTrip[] {
+    const anchorCustomer = this.selectedCustomerName ||
+      this.filteredTrips.find((trip) => trip.customerName?.trim())?.customerName?.trim() ||
+      '';
+    if (!anchorCustomer) {
+      return [];
+    }
+
+    const anchorKey = this.customerKey(anchorCustomer);
+    return this.filteredTrips.filter(
+      (trip) =>
+        !!trip.customerName?.trim() &&
+        this.customerKey(trip.customerName) === anchorKey,
+    );
+  }
+
   get allVisibleSelected(): boolean {
-    return this.filteredTrips.length > 0 &&
-      this.filteredTrips.every((trip) => this.selectedTripIds.has(String(trip.id)));
+    return this.selectableVisibleTrips.length > 0 &&
+      this.selectableVisibleTrips.every((trip) => this.selectedTripIds.has(String(trip.id)));
+  }
+
+  get someVisibleSelected(): boolean {
+    return this.selectableVisibleTrips.some((trip) => this.isTripSelected(trip));
   }
 
   get totalAdvance(): number {
@@ -167,6 +191,7 @@ export class UnbilledTripsComponent implements OnInit {
           this.selectedTripIds = new Set(
             [...this.selectedTripIds].filter((id) => activeIds.has(id)),
           );
+          this.retainSingleCustomerSelection();
         }
         this.loading = false;
         this.changeDetectorRef.markForCheck();
@@ -184,11 +209,36 @@ export class UnbilledTripsComponent implements OnInit {
     return this.selectedTripIds.has(String(trip.id));
   }
 
+  canSelectTrip(trip: UnbilledTrip): boolean {
+    const customerName = trip.customerName?.trim() ?? '';
+    if (!customerName) {
+      return false;
+    }
+
+    return !this.selectedCustomerName ||
+      this.customerKey(customerName) === this.customerKey(this.selectedCustomerName);
+  }
+
+  tripSelectionHint(trip: UnbilledTrip): string {
+    if (!trip.customerName?.trim()) {
+      return 'This trip cannot be invoiced until a customer is assigned.';
+    }
+
+    if (
+      this.selectedCustomerName &&
+      this.customerKey(trip.customerName) !== this.customerKey(this.selectedCustomerName)
+    ) {
+      return `Only trips for ${this.selectedCustomerName} can be included in this invoice.`;
+    }
+
+    return `Select trip ${trip.id}`;
+  }
+
   toggleTrip(trip: UnbilledTrip): void {
     const id = String(trip.id);
     if (this.selectedTripIds.has(id)) {
       this.selectedTripIds.delete(id);
-    } else {
+    } else if (this.canSelectTrip(trip)) {
       this.selectedTripIds.add(id);
     }
   }
@@ -196,19 +246,24 @@ export class UnbilledTripsComponent implements OnInit {
   toggleVisibleTrips(): void {
     const updated = new Set(this.selectedTripIds);
     if (this.allVisibleSelected) {
-      this.filteredTrips.forEach((trip) => updated.delete(String(trip.id)));
+      this.selectableVisibleTrips.forEach((trip) => updated.delete(String(trip.id)));
     } else {
-      this.filteredTrips.forEach((trip) => updated.add(String(trip.id)));
+      this.selectableVisibleTrips.forEach((trip) => updated.add(String(trip.id)));
     }
     this.selectedTripIds = updated;
   }
 
   openInvoiceModal(): void {
-    if (this.selectedTrips.length === 0) {
+    const selected = this.selectedTrips;
+    if (selected.length === 0) {
       this.errorMessage = 'Select at least one trip to generate an invoice.';
       return;
     }
-    this.advancePayment = this.selectedTrips.reduce(
+    if (!this.getSelectedCustomerName(selected)) {
+      this.errorMessage = 'Select trips for one customer with a valid customer name.';
+      return;
+    }
+    this.advancePayment = selected.reduce(
       (sum, trip) => sum + this.numberValue(trip.advance),
       0,
     );
@@ -234,6 +289,10 @@ export class UnbilledTripsComponent implements OnInit {
     const selected = this.selectedTrips;
     if (selected.length === 0) {
       this.invoiceError = 'Select at least one trip.';
+      return;
+    }
+    if (!this.getSelectedCustomerName(selected)) {
+      this.invoiceError = 'Select trips for one customer with a valid customer name.';
       return;
     }
     if (
@@ -313,6 +372,7 @@ export class UnbilledTripsComponent implements OnInit {
     const payload = {
       billedDate: this.formattedToday(),
       invoice: invoiceHtml,
+      customerName: this.getSelectedCustomerName(selected),
     };
     this.http.put(`${this.apiUrl}/api/invoice/save`, payload, { responseType: 'text' }).subscribe({
       next: (response) => {
@@ -419,6 +479,40 @@ export class UnbilledTripsComponent implements OnInit {
 
   private formattedToday(): string {
     return new Intl.DateTimeFormat('en-GB').format(new Date());
+  }
+
+  private getSelectedCustomerName(trips: UnbilledTrip[]): string {
+    const customerName = trips[0]?.customerName?.trim() ?? '';
+    if (!customerName) {
+      return '';
+    }
+
+    const customerKey = this.customerKey(customerName);
+    return trips.every(
+      (trip) => this.customerKey(trip.customerName ?? '') === customerKey,
+    )
+      ? customerName
+      : '';
+  }
+
+  private customerKey(customerName: string): string {
+    return customerName.trim().toLocaleLowerCase();
+  }
+
+  private retainSingleCustomerSelection(): void {
+    const selected = this.selectedTrips;
+    const customerName = this.getSelectedCustomerName(selected);
+    if (!customerName) {
+      this.selectedTripIds.clear();
+      return;
+    }
+
+    const customerKey = this.customerKey(customerName);
+    this.selectedTripIds = new Set(
+      selected
+        .filter((trip) => this.customerKey(trip.customerName ?? '') === customerKey)
+        .map((trip) => String(trip.id)),
+    );
   }
 
   private numberValue(value: number | string | null | undefined): number {

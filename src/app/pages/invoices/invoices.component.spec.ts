@@ -29,15 +29,49 @@ describe('InvoicesComponent', () => {
     fixture.detectChanges();
 
     httpTesting.expectOne(`${apiUrl}/api/invoice/getAllInvoice`).flush([
-      { id: 1, billedDate: '2026-09-01' },
-      { id: 10, billedDate: '2026-10-01' },
-      { id: 2, billedDate: '2026-08-01' },
+      { id: 1, billedDate: '2026-09-01', customerName: 'Northwind' },
+      { id: 10, billedDate: '2026-10-01', customerName: 'Deepika Kale' },
+      { id: 2, billedDate: '2026-08-01', customerName: 'Ratnagiri Site' },
     ]);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.invoices.map((invoice) => invoice.id)).toEqual([10, 2, 1]);
     fixture.componentInstance.searchTerm = '2026-08';
     expect(fixture.componentInstance.filteredInvoices.map((invoice) => invoice.id)).toEqual([2]);
+
+    fixture.componentInstance.searchTerm = 'deepika';
+    expect(fixture.componentInstance.filteredInvoices.map((invoice) => invoice.id)).toEqual([10]);
+    expect(fixture.nativeElement.textContent).toContain('Customer Name');
+    expect(fixture.nativeElement.textContent).toContain('Deepika Kale');
+  });
+
+  it('loads invoices with the API response fields and nullable customer data', () => {
+    const fixture = TestBed.createComponent(InvoicesComponent);
+    fixture.detectChanges();
+
+    httpTesting.expectOne(`${apiUrl}/api/invoice/getAllInvoice`).flush([
+      {
+        billedDate: '04/10/2026',
+        invoice: '<html><body>Tax invoice</body></html>',
+        customerName: 'Deepika Kale',
+        omobile: '9370637150',
+        id: 'INV1791094389236',
+      },
+      {
+        billedDate: null,
+        invoice: '<html><body>Older invoice</body></html>',
+        customerName: null,
+        omobile: '9370637150',
+        id: 'INV1791094389235',
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.errorMessage).toBe('');
+    expect(fixture.componentInstance.invoices).toHaveLength(2);
+    expect(fixture.nativeElement.textContent).toContain('Deepika Kale');
+    expect(fixture.nativeElement.textContent).toContain('INV1791094389236');
+    expect(fixture.nativeElement.textContent).toContain('—');
   });
 
   it('fetches the selected invoice and opens the returned HTML for printing', () => {

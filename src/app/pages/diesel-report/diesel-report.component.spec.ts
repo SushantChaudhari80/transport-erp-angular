@@ -39,6 +39,7 @@ describe('DieselReportComponent', () => {
       {
         id: 1,
         date: '2026-10-01',
+        orderName: 'Deepika Kale',
         machineNumber: 'MH12AB1234',
         petrolPump: 'Shell India',
         fuelRate: '100.5',
@@ -46,6 +47,7 @@ describe('DieselReportComponent', () => {
       },
       {
         id: 2,
+        orderName: null,
         machineNumber: 'MH12AB1234',
         fuelRate: 99,
         diesel: 10,
@@ -67,6 +69,11 @@ describe('DieselReportComponent', () => {
     expect(component.errorMessage).toBe('');
     expect(harness.routeNativeElement?.textContent).toContain('Diesel Consumption Report');
     expect(harness.routeNativeElement?.textContent).toContain('MH12AB1234');
+    expect(harness.routeNativeElement?.textContent).toContain('Customer name');
+    expect(harness.routeNativeElement?.textContent).toContain('Deepika Kale');
+    expect(harness.routeNativeElement?.querySelector('tbody')?.textContent).toContain('—');
+    component.searchTerm = 'Deepika Kale';
+    expect(component.filteredRecords.map((record) => record.id)).toEqual([1]);
   });
 
   it('posts a diesel entry with the API payload then refreshes records', async () => {
@@ -115,6 +122,7 @@ describe('DieselReportComponent', () => {
       {
         id: 27,
         date: null,
+        orderName: null,
         machineNumber: null,
         petrolPump: null,
         fuelRate: null,

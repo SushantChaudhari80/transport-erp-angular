@@ -79,6 +79,33 @@ describe('UnbilledTripsComponent', () => {
     expect(fixture.componentInstance.selectedTrips.map((trip) => trip.id)).toEqual([2]);
   });
 
+  it('allows only one customer per invoice and limits select-all to that customer', () => {
+    const fixture = TestBed.createComponent(UnbilledTripsComponent);
+    fixture.detectChanges();
+    httpTesting.expectOne(`${apiUrl}/api/treep/getAll`).flush([
+      { id: 3, customerName: 'Acme Transport' },
+      { id: 2, customerName: 'Beta Hauling' },
+      { id: 1, customerName: 'Acme Transport' },
+      { id: 4, customerName: '  ' },
+    ]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component.selectableVisibleTrips.map((trip) => trip.id)).toEqual([1, 3]);
+    component.toggleVisibleTrips();
+    expect(component.selectedTrips.map((trip) => trip.id)).toEqual([1, 3]);
+    expect(component.selectedCustomerName).toBe('Acme Transport');
+    expect(component.canSelectTrip(component.trips.find((trip) => trip.id === 2)!)).toBe(false);
+
+    component.toggleTrip(component.trips.find((trip) => trip.id === 2)!);
+    expect(component.selectedTrips.map((trip) => trip.id)).toEqual([1, 3]);
+
+    component.toggleVisibleTrips();
+    expect(component.selectedTrips).toHaveLength(0);
+    expect(component.canSelectTrip(component.trips.find((trip) => trip.id === 2)!)).toBe(true);
+    expect(component.canSelectTrip(component.trips.find((trip) => trip.id === 4)!)).toBe(false);
+  });
+
   it('renders API trips with nullable optional fields instead of rejecting the response', () => {
     const fixture = TestBed.createComponent(UnbilledTripsComponent);
     fixture.detectChanges();
@@ -161,6 +188,7 @@ describe('UnbilledTripsComponent', () => {
     const saveRequest = httpTesting.expectOne(`${apiUrl}/api/invoice/save`);
     expect(saveRequest.request.method).toBe('PUT');
     expect(saveRequest.request.body.billedDate).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+    expect(saveRequest.request.body.customerName).toBe('Acme');
     expect(saveRequest.request.body.invoice).toContain('&lt;Acme Transport&gt;');
     expect(saveRequest.request.body.invoice).toContain('GST123');
     saveRequest.flush('Invoice saved');

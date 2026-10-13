@@ -83,6 +83,27 @@ describe('UnbilledReadingComponent', () => {
     expect(component.selectedReadings.map((reading) => reading.id)).toEqual([5]);
   });
 
+  it('allows selecting readings for only one named customer', () => {
+    const fixture = TestBed.createComponent(UnbilledReadingComponent);
+    loadPage(fixture);
+    const component = fixture.componentInstance;
+    component.readings = [
+      { id: 4, orderName: 'Beta Contractors' },
+      { id: 3, orderName: 'Acme Earthworks' },
+      { id: 2, orderName: 'acme earthworks ' },
+      { id: 1, orderName: '  ' },
+    ];
+
+    component.toggleReading(component.readings[1]);
+    component.toggleVisibleReadings();
+
+    expect(component.selectedReadings.map((reading) => reading.id)).toEqual([3, 2]);
+    expect(component.selectedCustomerName).toBe('Acme Earthworks');
+    expect(component.canSelectReading(component.readings[0])).toBe(false);
+    expect(component.canSelectReading(component.readings[3])).toBe(false);
+    expect(component.allVisibleSelected).toBe(true);
+  });
+
   it('renders readings with nullable optional API fields instead of rejecting the response', () => {
     const fixture = TestBed.createComponent(UnbilledReadingComponent);
     fixture.detectChanges();
@@ -169,6 +190,8 @@ describe('UnbilledReadingComponent', () => {
 
     const saveRequest = httpTesting.expectOne(`${apiUrl}/api/invoice/save`);
     expect(saveRequest.request.method).toBe('PUT');
+    expect(saveRequest.request.body.customerName).toBe('Customer');
+    expect(saveRequest.request.body.billedDate).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
     expect(saveRequest.request.body.invoice).toContain('&lt;Machine Company&gt;');
     expect(saveRequest.request.body.invoice).toContain('GST123');
     expect(saveRequest.request.body.invoice).toContain('MH12AB1234');

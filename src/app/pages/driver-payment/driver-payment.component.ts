@@ -34,6 +34,35 @@ interface PaymentForm {
   comment: string;
 }
 
+type LeaveStatus = 'OPEN' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+interface DriverLeave {
+  id: number;
+  driverName: string;
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  status: LeaveStatus;
+  adminRemarks?: string | null;
+  createdAt?: string;
+}
+
+interface LeaveForm {
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+}
+
+interface CalendarDay {
+  date: Date;
+  isoDate: string;
+  inCurrentMonth: boolean;
+}
+
+const LEAVE_STATUSES: LeaveStatus[] = ['OPEN', 'APPROVED', 'REJECTED', 'CANCELLED'];
+
 function isDriverDetails(value: unknown): value is DriverDetails {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return false;
@@ -53,6 +82,32 @@ function isDriverPayment(value: unknown): value is DriverPayment {
 
   const payment = value as Record<string, unknown>;
   return typeof payment['id'] === 'number' || typeof payment['id'] === 'string';
+}
+
+function isDriverLeave(value: unknown): value is DriverLeave {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const leave = value as Record<string, unknown>;
+  return (
+    typeof leave['id'] === 'number' &&
+    Number.isSafeInteger(leave['id']) &&
+    typeof leave['driverName'] === 'string' &&
+    typeof leave['leaveType'] === 'string' &&
+    typeof leave['fromDate'] === 'string' &&
+    typeof leave['toDate'] === 'string' &&
+    typeof leave['reason'] === 'string' &&
+    typeof leave['status'] === 'string' &&
+    LEAVE_STATUSES.includes(leave['status'] as LeaveStatus)
+  );
+}
+
+function toDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 @Component({
@@ -77,6 +132,21 @@ export class DriverPaymentComponent implements OnInit {
   loadingPayments = false;
   savingPayment = false;
   showPaymentModal = false;
+  showLeaveModal = false;
+  showLeaveForm = false;
+  loadingLeaves = false;
+  savingLeave = false;
+  leaveBusyId: number | null = null;
+  leaveRequests: DriverLeave[] = [];
+  leaveMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  selectedLeaveStatus = '';
+  selectedLeaveType = '';
+  leaveSearch = '';
+  adminRemarks = '';
+  leaveError = '';
+  leaveSuccess = '';
+  leaveFormError = '';
+  leaveForm: LeaveForm = this.emptyLeaveForm();
   errorMessage = '';
   paymentError = '';
   successMessage = '';
@@ -96,6 +166,86 @@ export class DriverPaymentComponent implements OnInit {
 
   get totalDue(): number {
     return this.totalPayableAmount - this.totalPaidAmount;
+  }
+
+  get leaveMonthTitle(): string {
+    return new Intl.DateTimeFormat('en-IN', {
+      month: 'long',
+      year: 'numeric',
+    }).format(this.leaveMonth);
+  }
+
+  get calendarDays(): CalendarDay[] {
+    const firstDay = new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth(), 1);
+    const offset = firstDay.getDay();
+    const start = new Date(firstDay);
+    start.setDate(firstDay.getDate() - offset);
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return {
+        date,
+        isoDate: toDateString(date),
+        inCurrentMonth: date.getMonth() === this.leaveMonth.getMonth(),
+      };
+    });
+  }
+
+  get monthLeaveRequests(): DriverLeave[] {
+    const monthStart = new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth(), 1);
+    const monthEnd = new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth() + 1, 0);
+    const monthStartString = toDateString(monthStart);
+    const monthEndString = toDateString(monthEnd);
+
+    return this.leaveRequests.filter((leave) =>
+      leave.driverName === this.driverName &&
+      (!this.selectedLeaveStatus || leave.status === this.selectedLeaveStatus) &&
+      (!this.selectedLeaveType || leave.leaveType === this.selectedLeaveType) &&
+      (!this.leaveSearch.trim() ||
+        leave.driverName.toLowerCase().includes(this.leaveSearch.trim().toLowerCase()) ||
+        String(leave.id).includes(this.leaveSearch.trim()) ||
+        leave.leaveType.toLowerCase().includes(this.leaveSearch.trim().toLowerCase())) &&
+      leave.fromDate <= monthEndString &&
+      leave.toDate >= monthStartString
+    );
+  }
+
+  get leaveTypeOptions(): string[] {
+    const monthStart = toDateString(
+      new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth(), 1),
+    );
+    const monthEnd = toDateString(
+      new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth() + 1, 0),
+    );
+    return [...new Set(this.leaveRequests
+      .filter((leave) =>
+        leave.driverName === this.driverName &&
+        leave.fromDate <= monthEnd &&
+        leave.toDate >= monthStart
+      )
+      .map((leave) => leave.leaveType))]
+      .sort((first, second) => first.localeCompare(second));
+  }
+
+  get openLeaveCount(): number {
+    return this.monthLeaveRequests.filter((leave) => leave.status === 'OPEN').length;
+  }
+
+  get approvedLeaveCount(): number {
+    return this.monthLeaveRequests.filter((leave) => leave.status === 'APPROVED').length;
+  }
+
+  get rejectedLeaveCount(): number {
+    return this.monthLeaveRequests.filter((leave) => leave.status === 'REJECTED').length;
+  }
+
+  get cancelledLeaveCount(): number {
+    return this.monthLeaveRequests.filter((leave) => leave.status === 'CANCELLED').length;
+  }
+
+  get leaveMinDate(): string {
+    return toDateString(new Date());
   }
 
   ngOnInit(): void {
@@ -162,6 +312,256 @@ export class DriverPaymentComponent implements OnInit {
     this.paymentForm = this.emptyPaymentForm();
     this.paymentError = '';
     this.showPaymentModal = true;
+  }
+
+  openLeaveModal(): void {
+    this.showLeaveModal = true;
+    this.showLeaveForm = false;
+    this.leaveError = '';
+    this.leaveSuccess = '';
+    this.leaveFormError = '';
+    this.selectedLeaveStatus = '';
+    this.selectedLeaveType = '';
+    this.leaveSearch = '';
+    this.adminRemarks = '';
+    this.leaveForm = this.emptyLeaveForm();
+    this.loadLeaveRequests();
+  }
+
+  closeLeaveModal(): void {
+    if (this.savingLeave || this.leaveBusyId !== null) {
+      return;
+    }
+    this.showLeaveModal = false;
+    this.showLeaveForm = false;
+    this.leaveError = '';
+  }
+
+  loadLeaveRequests(): void {
+    this.loadingLeaves = true;
+    this.leaveError = '';
+    this.http.get<unknown>(
+      `${this.apiUrl}/api/driver-leaves/driver/${encodeURIComponent(this.driverName)}`,
+    ).subscribe({
+      next: (response) => {
+        if (!Array.isArray(response) || !response.every(isDriverLeave)) {
+          console.error('Unexpected response from driver leaves API:', response);
+          this.leaveError = 'The leave service returned an unexpected response.';
+        } else {
+          this.leaveRequests = response.map((leave) => ({
+            ...leave,
+            id: Number(leave.id),
+          }));
+        }
+        this.loadingLeaves = false;
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load driver leave requests:', error);
+        this.loadingLeaves = false;
+        this.leaveRequests = [];
+        this.leaveError = 'Unable to load leave requests. Please try again.';
+        this.changeDetectorRef.markForCheck();
+      },
+    });
+  }
+
+  openLeaveForm(): void {
+    this.leaveForm = this.emptyLeaveForm();
+    this.leaveFormError = '';
+    this.showLeaveForm = true;
+  }
+
+  closeLeaveForm(): void {
+    if (this.savingLeave) {
+      return;
+    }
+    this.showLeaveForm = false;
+    this.leaveFormError = '';
+  }
+
+  submitLeaveRequest(): void {
+    if (this.savingLeave) {
+      return;
+    }
+
+    const request: LeaveForm = {
+      leaveType: this.leaveForm.leaveType.trim(),
+      fromDate: this.leaveForm.fromDate,
+      toDate: this.leaveForm.toDate,
+      reason: this.leaveForm.reason.trim(),
+    };
+    if (
+      !this.driverName ||
+      !request.leaveType ||
+      !request.fromDate ||
+      !request.toDate
+    ) {
+      this.leaveFormError = 'Complete all required fields.';
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+    if (request.toDate < request.fromDate) {
+      this.leaveFormError = 'The end date cannot be before the start date.';
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+    if (request.fromDate < this.leaveMinDate) {
+      this.leaveFormError = 'Leave cannot start in the past.';
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+
+    this.savingLeave = true;
+    this.leaveFormError = '';
+    this.http.post<unknown>(`${this.apiUrl}/api/driver-leaves`, {
+      ...request,
+      driverName: this.driverName,
+    }).subscribe({
+      next: (response) => {
+        if (!isDriverLeave(response)) {
+          console.error('Unexpected response from create leave API:', response);
+          this.savingLeave = false;
+          this.leaveFormError = 'The leave service returned an unexpected response.';
+          this.changeDetectorRef.markForCheck();
+          return;
+        }
+        this.savingLeave = false;
+        this.showLeaveForm = false;
+        this.leaveMonth = new Date(
+          Number(request.fromDate.slice(0, 4)),
+          Number(request.fromDate.slice(5, 7)) - 1,
+          1,
+        );
+        this.leaveSuccess = 'Leave request created successfully.';
+        this.loadLeaveRequests();
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to create driver leave request:', error);
+        this.savingLeave = false;
+        this.leaveFormError = this.apiErrorMessage(error, 'Unable to create leave request.');
+        this.changeDetectorRef.markForCheck();
+      },
+    });
+  }
+
+  changeLeaveMonth(offset: number): void {
+    this.leaveMonth = new Date(
+      this.leaveMonth.getFullYear(),
+      this.leaveMonth.getMonth() + offset,
+      1,
+    );
+  }
+
+  leavesForDay(day: CalendarDay): DriverLeave[] {
+    return this.monthLeaveRequests.filter(
+      (leave) => leave.fromDate <= day.isoDate && leave.toDate >= day.isoDate,
+    );
+  }
+
+  isLeaveDetailDay(leave: DriverLeave, day: CalendarDay): boolean {
+    if (day.isoDate === leave.fromDate) {
+      return true;
+    }
+    const monthStart = toDateString(
+      new Date(this.leaveMonth.getFullYear(), this.leaveMonth.getMonth(), 1),
+    );
+    return day.inCurrentMonth && leave.fromDate < monthStart && day.isoDate === monthStart;
+  }
+
+  leaveDayCount(leave: DriverLeave): number {
+    const [fromYear, fromMonth, fromDay] = leave.fromDate.split('-').map(Number);
+    const [toYear, toMonth, toDay] = leave.toDate.split('-').map(Number);
+    const from = Date.UTC(fromYear, fromMonth - 1, fromDay);
+    const to = Date.UTC(toYear, toMonth - 1, toDay);
+    return Math.floor((to - from) / 86_400_000) + 1;
+  }
+
+  formatLeaveDate(date: string): string {
+    const [year, month, day] = date.split('-').map(Number);
+    return new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(year, month - 1, day));
+  }
+
+  updateLeaveStatus(leave: DriverLeave, status: 'APPROVED' | 'REJECTED'): void {
+    const action = status === 'APPROVED' ? 'Approve' : 'Reject';
+    if (
+      leave.status !== 'OPEN' ||
+      this.leaveBusyId !== null ||
+      !window.confirm(`${action} leave request #${leave.id} for ${leave.driverName}?`)
+    ) {
+      return;
+    }
+
+    this.leaveBusyId = leave.id;
+    this.leaveError = '';
+    this.leaveSuccess = '';
+    let params = new HttpParams().set('status', status);
+    const remarks = this.adminRemarks.trim();
+    if (remarks) {
+      params = params.set('adminRemarks', remarks);
+    }
+    this.http.patch<unknown>(
+      `${this.apiUrl}/api/driver-leaves/${leave.id}/status`,
+      null,
+      { params },
+    ).subscribe({
+      next: (response) => {
+        if (!isDriverLeave(response)) {
+          console.error('Unexpected response from update leave status API:', response);
+          this.leaveBusyId = null;
+          this.leaveError = 'The leave service returned an unexpected response.';
+          this.changeDetectorRef.markForCheck();
+          return;
+        }
+        this.leaveBusyId = null;
+        this.leaveSuccess = `Leave request #${leave.id} ${status.toLowerCase()}.`;
+        this.loadLeaveRequests();
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to update driver leave status:', error);
+        this.leaveBusyId = null;
+        this.leaveError = this.apiErrorMessage(error, 'Unable to update leave request.');
+        this.changeDetectorRef.markForCheck();
+      },
+    });
+  }
+
+  deleteLeaveRequest(leave: DriverLeave): void {
+    if (
+      leave.status === 'APPROVED' ||
+      this.leaveBusyId !== null ||
+      !window.confirm(`Delete leave request #${leave.id} for ${leave.driverName}?`)
+    ) {
+      return;
+    }
+
+    this.leaveBusyId = leave.id;
+    this.leaveError = '';
+    this.leaveSuccess = '';
+    this.http.delete(`${this.apiUrl}/api/driver-leaves/${leave.id}`).subscribe({
+      next: () => {
+        this.leaveBusyId = null;
+        this.leaveSuccess = `Leave request #${leave.id} deleted.`;
+        this.loadLeaveRequests();
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to delete driver leave request:', error);
+        this.leaveBusyId = null;
+        this.leaveError = this.apiErrorMessage(error, 'Unable to delete leave request.');
+        this.changeDetectorRef.markForCheck();
+      },
+    });
+  }
+
+  leaveStatusClass(status: LeaveStatus): string {
+    return `leave-status-${status.toLowerCase()}`;
   }
 
   closePaymentModal(): void {
@@ -247,5 +647,26 @@ export class DriverPaymentComponent implements OnInit {
 
   private emptyPaymentForm(): PaymentForm {
     return { amount: null, comment: '' };
+  }
+
+  private emptyLeaveForm(): LeaveForm {
+    return {
+      leaveType: '',
+      fromDate: '',
+      toDate: '',
+      reason: '',
+    };
+  }
+
+  private apiErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    if (typeof error.error === 'object' && error.error !== null) {
+      const message = (error.error as Record<string, unknown>)['message'];
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+    }
+    return typeof error.error === 'string' && error.error.trim()
+      ? error.error
+      : fallback;
   }
 }

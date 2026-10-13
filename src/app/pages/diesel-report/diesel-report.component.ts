@@ -8,6 +8,7 @@ import { Host } from '../../core/services/host';
 interface DieselRecord {
   id: number | string;
   date?: string | null;
+  orderName?: string | null;
   machineNumber?: string | null;
   petrolPump?: string | null;
   fuelRate?: number | string | null;
@@ -42,6 +43,9 @@ function isDieselRecord(value: unknown): value is DieselRecord {
 
   return (
     (value['date'] === undefined || value['date'] === null || typeof value['date'] === 'string') &&
+    (value['orderName'] === undefined ||
+      value['orderName'] === null ||
+      typeof value['orderName'] === 'string') &&
     (value['machineNumber'] === undefined ||
       value['machineNumber'] === null ||
       typeof value['machineNumber'] === 'string') &&
@@ -99,6 +103,7 @@ export class DieselReportComponent implements OnInit {
       [
         record.id,
         record.date,
+        record.orderName,
         record.machineNumber,
         record.petrolPump,
         record.fuelRate,

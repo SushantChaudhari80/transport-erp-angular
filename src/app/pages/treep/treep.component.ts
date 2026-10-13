@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   ChangeDetectionStrategy,
   Component,
   OnInit,
@@ -10,20 +11,16 @@ import {
   HttpClient,
   HttpErrorResponse,
 } from '@angular/common/http';
+import { finalize } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { Host } from '../../core/services/host';
+import { parseVehicleOptions, VehicleOption } from '../../core/utils/vehicle-option';
 
-
-interface Vehicle {
-  id: number;
-  machine_number?: string;
-  machineNumber?: string;
-}
-
+type Vehicle = VehicleOption;
 
 interface Customer {
-  id: number;
-  customer_name?: string;
+  id: number | string;
+  customer_name?: string | null;
 }
 
 
@@ -32,6 +29,7 @@ interface CustomerDetails {
   mobile?: string;
   address?: string;
   bussinessName?: string;
+  picture?: string;
 }
 
 
@@ -42,6 +40,7 @@ interface TreepPayload {
   soilRate: number;
   item: string;
   isBilled: boolean;
+  submittedBy: string;
 }
 
 
@@ -63,6 +62,8 @@ export class TreepComponent implements OnInit {
 
   private readonly http = inject(HttpClient);
 
+  private readonly changeDetector = inject(ChangeDetectorRef);
+
   private readonly apiUrl = Host.API_URL.replace(/\/+$/, '');
 
 
@@ -71,6 +72,9 @@ export class TreepComponent implements OnInit {
   // ============================================================
 
   loading = false;
+  loadingVehicles = false;
+  loadingCustomers = false;
+  loadingCustomerDetails = false;
 
   errorMessage = '';
 
@@ -98,9 +102,9 @@ export class TreepComponent implements OnInit {
 
   selectedMaterial = '';
 
-  soilBrass = 0;
+  soilBrass: number | null = null;
 
-  soilRate = 0;
+  soilRate: number | null = null;
 
 
   // ============================================================
@@ -139,31 +143,45 @@ export class TreepComponent implements OnInit {
   // ============================================================
 
   loadVehicles(): void {
-
-    this.http
-      .get<Vehicle[]>(
-        `${this.apiUrl}/api/vehicles/getAll/loading`
-      )
-      .subscribe({
-
-        next: (vehicles) => {
-
-          this.vehicles =
-            vehicles ?? [];
-
-        },
-
-        error: (error: HttpErrorResponse) => {
-
-          console.error(
-            'Error fetching vehicle data:',
-            error
-          );
-
-          this.errorMessage =
-            'Unable to load vehicles.';
-        },
-      });
+    this.loadingVehicles = true;
+    this.errorMessage = '';
+    this.http.get<unknown>(`${this.apiUrl}/api/vehicles/getAll`).pipe(
+      finalize(() => {
+        this.loadingVehicles = false;
+        this.changeDetector.markForCheck();
+      }),
+    ).subscribe({
+      next: (response) => {
+        const vehicles = parseVehicleOptions(response);
+        if (vehicles === null) {
+          console.error('Unexpected vehicle list response:', response);
+          this.vehicles = [];
+          this.errorMessage = 'The vehicle service returned an unexpected response.';
+        } else {
+          const uniqueVehicles = new Map<string, Vehicle>();
+          for (const vehicle of vehicles) {
+            const machineNumber = this.vehicleNumber(vehicle);
+            const key = machineNumber.toLocaleLowerCase();
+            if (key && !uniqueVehicles.has(key)) {
+              uniqueVehicles.set(key, vehicle);
+            }
+          }
+          this.vehicles = [...uniqueVehicles.values()];
+          if (
+            this.selectedVehicleId !== null &&
+            !this.vehicles.some((vehicle) => String(vehicle.id) === String(this.selectedVehicleId))
+          ) {
+            this.selectedVehicleId = null;
+          }
+        }
+        this.changeDetector.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load vehicles:', error);
+        this.errorMessage = 'Unable to load vehicles. Please try again.';
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
 
@@ -172,31 +190,46 @@ export class TreepComponent implements OnInit {
   // ============================================================
 
   loadCustomers(): void {
-
-    this.http
-      .get<Customer[]>(
-        `${this.apiUrl}/api/order/getAll`
-      )
-      .subscribe({
-
-        next: (customers) => {
-
-          this.customers =
-            customers ?? [];
-
-        },
-
-        error: (error: HttpErrorResponse) => {
-
-          console.error(
-            'Error fetching customer data:',
-            error
+    this.loadingCustomers = true;
+    this.errorMessage = '';
+    this.http.get<unknown>(`${this.apiUrl}/api/order/getAll`).pipe(
+      finalize(() => {
+        this.loadingCustomers = false;
+        this.changeDetector.markForCheck();
+      }),
+    ).subscribe({
+      next: (response) => {
+        if (!Array.isArray(response) || !response.every((customer) => this.isCustomer(customer))) {
+          console.error('Unexpected customer list response:', response);
+          this.customers = [];
+          this.errorMessage = 'The order service returned an unexpected customer response.';
+        } else {
+          const uniqueCustomers = new Map<string, Customer>();
+          for (const customer of response) {
+            const name = customer.customer_name?.trim() ?? '';
+            const key = name.toLocaleLowerCase();
+            if (key && !uniqueCustomers.has(key)) {
+              uniqueCustomers.set(key, { ...customer, customer_name: name });
+            }
+          }
+          this.customers = [...uniqueCustomers.values()].sort((left, right) =>
+            (left.customer_name ?? '').localeCompare(right.customer_name ?? ''),
           );
-
-          this.errorMessage =
-            'Unable to load customers.';
-        },
-      });
+          if (
+            this.selectedCustomerId !== null &&
+            !this.customers.some((customer) => String(customer.id) === String(this.selectedCustomerId))
+          ) {
+            this.selectedCustomerId = null;
+          }
+        }
+        this.changeDetector.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load customer list:', error);
+        this.errorMessage = 'Unable to load customers. Please try again.';
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
 
@@ -205,31 +238,30 @@ export class TreepComponent implements OnInit {
   // ============================================================
 
   loadCustomerDetails(): void {
-
-    this.http
-      .get<CustomerDetails>(
-        `${this.apiUrl}/api/customers/get`
-      )
-      .subscribe({
-
-        next: (customer) => {
-
-          this.customerDetails =
-            customer;
-
-        },
-
-        error: (error: HttpErrorResponse) => {
-
-          console.error(
-            'Error fetching customer details:',
-            error
-          );
-
-          this.errorMessage =
-            'Unable to load owner details.';
-        },
-      });
+    this.loadingCustomerDetails = true;
+    this.errorMessage = '';
+    this.http.get<unknown>(`${this.apiUrl}/api/customers/get`).pipe(
+      finalize(() => {
+        this.loadingCustomerDetails = false;
+        this.changeDetector.markForCheck();
+      }),
+    ).subscribe({
+      next: (response) => {
+        if (!this.isCustomerDetails(response)) {
+          console.error('Unexpected receipt owner details response:', response);
+          this.customerDetails = null;
+          this.errorMessage = 'The business profile service returned an unexpected response.';
+        } else {
+          this.customerDetails = response;
+        }
+        this.changeDetector.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load receipt owner details:', error);
+        this.errorMessage = 'Unable to load business profile details.';
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
 
@@ -244,9 +276,7 @@ export class TreepComponent implements OnInit {
     }
 
     return this.customers.find(
-      customer =>
-        customer.id ===
-        this.selectedCustomerId
+      (customer) => String(customer.id) === String(this.selectedCustomerId),
     );
   }
 
@@ -258,6 +288,17 @@ export class TreepComponent implements OnInit {
         ?.customer_name
         ?.trim() || '-'
     );
+  }
+
+  get businessLogoUrl(): string | null {
+    const picture = this.customerDetails?.picture?.trim();
+    if (!picture) {
+      return null;
+    }
+
+    return /^data:image\//i.test(picture)
+      ? picture
+      : `data:image/png;base64,${picture}`;
   }
 
 
@@ -272,9 +313,7 @@ export class TreepComponent implements OnInit {
     }
 
     return this.vehicles.find(
-      vehicle =>
-        vehicle.id ===
-        this.selectedVehicleId
+      (vehicle) => String(vehicle.id) === String(this.selectedVehicleId),
     );
   }
 
@@ -301,7 +340,7 @@ export class TreepComponent implements OnInit {
 
     this.errorMessage = '';
 
-    if (this.selectedCustomerId === null) {
+    if (    !this.selectedCustomer) {
 
       this.errorMessage =
         'Please select a customer.';
@@ -309,7 +348,7 @@ export class TreepComponent implements OnInit {
       return false;
     }
 
-    if (this.selectedVehicleId === null) {
+    if (    !this.selectedVehicle) {
 
       this.errorMessage =
         'Please select a vehicle.';
@@ -325,7 +364,7 @@ export class TreepComponent implements OnInit {
       return false;
     }
 
-    if (this.soilBrass <= 0) {
+    if (this.soilBrass === null || !Number.isFinite(this.soilBrass) || this.soilBrass <= 0) {
 
       this.errorMessage =
         'Please enter a valid quantity.';
@@ -333,7 +372,7 @@ export class TreepComponent implements OnInit {
       return false;
     }
 
-    if (this.soilRate < 0) {
+    if (this.soilRate === null || !Number.isFinite(this.soilRate) || this.soilRate < 0) {
 
       this.errorMessage =
         'Please enter a valid rate.';
@@ -368,8 +407,70 @@ export class TreepComponent implements OnInit {
       item:
         this.selectedMaterial,
 
+      submittedBy:
+        "Admin",
+
       isBilled: false,
     };
+  }
+
+  get totalAmount(): number {
+    return (this.soilBrass ?? 0) * (this.soilRate ?? 0);
+  }
+
+  get masterDataLoading(): boolean {
+    return this.loadingCustomers || this.loadingVehicles;
+  }
+
+  get canSubmit(): boolean {
+    return !this.loading &&
+      !this.masterDataLoading &&
+      !!this.selectedCustomer &&
+      !!this.selectedVehicle &&
+      !!this.selectedMaterial &&
+      this.soilBrass !== null &&
+      Number.isFinite(this.soilBrass) &&
+      this.soilBrass > 0 &&
+      this.soilRate !== null &&
+      Number.isFinite(this.soilRate) &&
+      this.soilRate >= 0;
+  }
+
+  retryCustomerLoad(): void {
+    this.loadCustomers();
+  }
+
+  retryVehicleLoad(): void {
+    this.loadVehicles();
+  }
+
+  private vehicleNumber(vehicle: Vehicle): string {
+    return vehicle.machine_number?.trim() || vehicle.machineNumber?.trim() || '';
+  }
+
+  private isCustomer(value: unknown): value is Customer {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+    return (
+      (typeof value['id'] === 'number' || typeof value['id'] === 'string') &&
+      (value['customer_name'] === undefined ||
+        value['customer_name'] === null ||
+        typeof value['customer_name'] === 'string')
+    );
+  }
+
+  private isCustomerDetails(value: unknown): value is CustomerDetails {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+    return ['name', 'mobile', 'address', 'bussinessName', 'picture'].every(
+      (key) => value[key] === undefined || value[key] === null || typeof value[key] === 'string',
+    );
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
 
@@ -418,6 +519,8 @@ export class TreepComponent implements OnInit {
           this.successMessage =
             response ||
             'Treep saved successfully.';
+
+          this.changeDetector.markForCheck();
         },
 
         error: (error: HttpErrorResponse) => {
@@ -432,6 +535,8 @@ export class TreepComponent implements OnInit {
           this.errorMessage =
             error.error ||
             'Unable to save treep. Please try again.';
+
+          this.changeDetector.markForCheck();
         },
       });
   }
@@ -487,6 +592,8 @@ export class TreepComponent implements OnInit {
 
           this.loading = false;
 
+          this.changeDetector.markForCheck();
+
           setTimeout(() => {
 
             window.print();
@@ -507,6 +614,8 @@ export class TreepComponent implements OnInit {
           this.errorMessage =
             error.error ||
             'Unable to save treep. PDF was not generated.';
+
+          this.changeDetector.markForCheck();
         },
       });
   }
@@ -547,9 +656,9 @@ export class TreepComponent implements OnInit {
 
     this.selectedMaterial = '';
 
-    this.soilBrass = 0;
+    this.soilBrass = null;
 
-    this.soilRate = 0;
+    this.soilRate = null;
 
     this.errorMessage = '';
 

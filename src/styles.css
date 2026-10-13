@@ -3,3 +3,22 @@ body {
   min-height: 100%;
   margin: 0;
 }
+
+@media print {
+  body.quotation-print-mode * {
+    visibility: hidden !important;
+  }
+
+  body.quotation-print-mode #quotation-summary,
+  body.quotation-print-mode #quotation-summary * {
+    visibility: visible !important;
+  }
+
+  body.quotation-print-mode #quotation-summary {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
