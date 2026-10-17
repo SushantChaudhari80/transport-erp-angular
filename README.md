@@ -2,6 +2,12 @@
 
 An Angular application for transport, fleet, and operations management.
 
+## Product documentation
+
+See the [Transport ERP client overview and user guide](docs/transport-erp-user-guide.md)
+for web module instructions, common workflows, driver Android app capabilities,
+and screenshot placeholders.
+
 ## Requirements
 
 - Node.js and npm versions supported by the installed Angular CLI.

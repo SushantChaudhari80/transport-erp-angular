@@ -40,12 +40,12 @@ describe('LoginComponent', () => {
   it('should report missing credentials', () => {
     component.login();
 
-    expect(component.error).toBe('Please enter username and password.');
+    expect(component.error()).toBe('Please enter username and password.');
   });
 
   it('should call the login API and navigate on success', () => {
-    component.username = 'operator@example.com';
-    component.password = 'test@123';
+    component.username.set('operator@example.com');
+    component.password.set('test@123');
 
     component.login();
 
@@ -59,13 +59,13 @@ describe('LoginComponent', () => {
     request.flush({ message: 'success' });
 
     expect(navigate).toHaveBeenCalledWith(['/dashboard']);
-    expect(component.error).toBe('');
-    expect(component.loading).toBe(false);
+    expect(component.error()).toBe('');
+    expect(component.loading()).toBe(false);
   });
 
   it('should show an authentication error when the API rejects the credentials', () => {
-    component.username = 'operator@example.com';
-    component.password = 'wrong-password';
+    component.username.set('operator@example.com');
+    component.password.set('wrong-password');
 
     component.login();
     httpTesting.expectOne((req) => req.url.endsWith('/login/user')).flush(
@@ -74,7 +74,43 @@ describe('LoginComponent', () => {
     );
 
     expect(navigate).not.toHaveBeenCalled();
-    expect(component.error).toBe('Invalid username or password.');
-    expect(component.loading).toBe(false);
+    expect(component.error()).toBe('Invalid username or password.');
+    expect(component.loading()).toBe(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent.trim())
+      .toBe('Invalid username or password.');
+  });
+
+  it('should show the API message for invalid credentials returned with HTTP 200', () => {
+    component.username.set('unknown-user');
+    component.password.set('wrong-password');
+
+    component.login();
+    httpTesting.expectOne((req) => req.url.endsWith('/login/user')).flush(
+      { message: 'Invalid username or password.' },
+    );
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(component.error()).toBe('Invalid username or password.');
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should allow another attempt after an authentication error', () => {
+    component.username.set('operator@example.com');
+    component.password.set('wrong-password');
+    component.login();
+
+    httpTesting.expectOne((req) => req.url.endsWith('/login/user')).flush(
+      { message: 'Unauthorized' },
+      { status: 401, statusText: 'Unauthorized' },
+    );
+
+    component.password.set('test@123');
+    component.login();
+    const request = httpTesting.expectOne((req) => req.url.endsWith('/login/user'));
+    expect(request.request.params.get('pass')).toBe('test@123');
+    request.flush({ message: 'success' });
+
+    expect(navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 });

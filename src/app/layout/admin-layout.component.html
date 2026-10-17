@@ -1,0 +1,54 @@
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <a class="admin-brand" routerLink="/admin/chatbot">
+      <span class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M5 22.5 13.8 5h4.4L27 22.5h-5.3l-2.1-4.3h-7.4l-2.1 4.3H5Z" fill="currentColor"/><path d="M14.1 14.1h3.8" stroke="#14251f" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </span>
+      <span><strong>Transport ERP</strong><small>ADMIN CONSOLE</small></span>
+    </a>
+
+    <div class="workspace-label">WORKSPACE</div>
+    <a class="workspace-switch">
+      <span class="workspace-avatar">T</span>
+      <span><strong>Transport Operations</strong><small>Administrator</small></span>
+      <span class="workspace-chevron" aria-hidden="true">⌄</span>
+    </a>
+
+    <nav aria-label="Admin navigation" class="admin-navigation">
+      <p class="navigation-heading">MANAGEMENT</p>
+      <div class="navigation-group">
+        <div class="navigation-parent">
+          <span class="nav-icon" aria-hidden="true">⌘</span>
+          <span>AI &amp; automation</span>
+          <span class="nav-chevron" aria-hidden="true">⌄</span>
+        </div>
+        <a class="submenu-link" routerLink="/admin/chatbot" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <span class="submenu-dot" aria-hidden="true"></span>
+          ChatBot management
+          <span class="submenu-status" aria-hidden="true"></span>
+        </a>
+      </div>
+
+      <p class="navigation-heading later-heading">COMING LATER</p>
+      <div class="future-item"><span aria-hidden="true">▦</span> User management <small>SOON</small></div>
+      <div class="future-item"><span aria-hidden="true">◷</span> System activity <small>SOON</small></div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="help-card"><span aria-hidden="true">✳</span><strong>Need a hand?</strong><p>Your operations team is here to help.</p><a href="mailto:support@transport-erp.local">Contact support <span aria-hidden="true">↗</span></a></div>
+      <div class="admin-profile">
+        <span class="profile-avatar">SA</span>
+        <span class="profile-details"><strong>System Admin</strong><small>Administrator</small></span>
+        <button type="button" class="logout-button" aria-label="Sign out" title="Sign out" (click)="logout()">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div class="breadcrumb"><span>Admin</span><span aria-hidden="true">/</span><strong>ChatBot management</strong></div>
+      <div class="topbar-right"><span class="environment"><i></i> LOCAL ENVIRONMENT</span><span class="topbar-divider"></span><span class="topbar-date">ADMIN WORKSPACE</span></div>
+    </header>
+    <router-outlet />
+  </main>
+</div>

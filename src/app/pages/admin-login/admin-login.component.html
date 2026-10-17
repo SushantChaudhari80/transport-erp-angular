@@ -1,0 +1,67 @@
+<main class="admin-login">
+  <section class="login-visual" aria-label="Transport ERP administration">
+    <a class="brand" routerLink="/" aria-label="Transport ERP home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M5 22.5 13.8 5h4.4L27 22.5h-5.3l-2.1-4.3h-7.4l-2.1 4.3H5Z" fill="currentColor"/>
+          <path d="M14.1 14.1h3.8" stroke="#11231f" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span><strong>Transport ERP</strong><small>Operations intelligence</small></span>
+    </a>
+
+    <div class="visual-copy">
+      <span class="eyebrow"><span></span> ADMINISTRATOR PORTAL</span>
+      <h1>One clear view<br />of <em>everything.</em></h1>
+      <p>Manage your fleet knowledge, conversations and AI assistant from a workspace built for the people behind every mile.</p>
+      <div class="visual-stat">
+        <div class="stat-icon" aria-hidden="true">✳</div>
+        <span><strong>Transport, understood.</strong><small>Your operations assistant is ready when you are.</small></span>
+      </div>
+    </div>
+
+    <div class="orbit orbit-one"></div>
+    <div class="orbit orbit-two"></div>
+    <div class="visual-footer"><span>BUILT FOR THE WAY YOU MOVE</span><span>01 — 03</span></div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-topline"><span>SECURE ACCESS</span><span class="secure"><i></i> Protected workspace</span></div>
+
+    <div class="login-card">
+      <div class="login-symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <p class="section-label">ADMIN PORTAL</p>
+      <h2>Welcome back<span>.</span></h2>
+      <p class="login-description">Sign in with your administrator credentials to continue.</p>
+
+      <form (ngSubmit)="login()">
+        <label for="admin-username">Email address</label>
+        <div class="field">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input id="admin-username" name="username" type="email" autocomplete="username" placeholder="name@company.com" required [ngModel]="username()" (ngModelChange)="username.set($event)" />
+        </div>
+
+        <div class="password-label"><label for="admin-password">Password</label><span>ADMIN ONLY</span></div>
+        <div class="field">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input id="admin-password" name="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" placeholder="Enter your password" required [ngModel]="password()" (ngModelChange)="password.set($event)" />
+          <button class="visibility-toggle" type="button" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'" (click)="showPassword.update((visible) => !visible)">
+            @if (showPassword()) { Hide } @else { Show }
+          </button>
+        </div>
+
+        @if (error()) {
+          <p class="login-error" role="alert">{{ error() }}</p>
+        }
+
+        <button class="submit-button" type="submit">Sign in to admin <span aria-hidden="true">→</span></button>
+      </form>
+
+      <div class="login-note"><span aria-hidden="true">⌑</span><p>Administrator access is restricted to authorized personnel.</p></div>
+    </div>
+
+    <footer class="panel-footer"><span>© 2026 Transport ERP</span><span>ADMIN CONSOLE <b>•</b> V1.0</span></footer>
+  </section>
+</main>

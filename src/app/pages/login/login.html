@@ -101,7 +101,8 @@
             type="text"
             name="username"
             aria-label="Username"
-            [(ngModel)]="username"
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
             placeholder="Email or phone"
             autocomplete="username"
             required
@@ -112,10 +113,11 @@
           <span aria-hidden="true">●</span>
 
           <input
-            [type]="showPassword ? 'text' : 'password'"
+            [type]="showPassword() ? 'text' : 'password'"
             name="password"
             aria-label="Password"
-            [(ngModel)]="password"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
             placeholder="Password"
             autocomplete="current-password"
             required
@@ -124,9 +126,9 @@
           <button
             type="button"
             class="show-password"
-            (click)="showPassword = !showPassword">
+            (click)="showPassword.update((visible) => !visible)">
 
-            {{ showPassword ? 'Hide' : 'Show' }}
+            {{ showPassword() ? 'Hide' : 'Show' }}
 
           </button>
         </div>
@@ -134,12 +136,12 @@
         <button
           class="login-button"
           type="submit"
-          [disabled]="loading">
-          {{ loading ? 'Signing in...' : 'Sign In' }}
+          [disabled]="loading()">
+          {{ loading() ? 'Signing in...' : 'Sign In' }}
         </button>
 
-        @if (error) {
-          <p class="error" role="alert">{{ error }}</p>
+        @if (error(); as errorMessage) {
+          <p class="error" role="alert">{{ errorMessage }}</p>
         }
 
       </form>

@@ -233,15 +233,16 @@
     </section>
   </main>
 
-  <button
-    class="chat-launcher"
-    type="button"
-    [attr.aria-expanded]="chatOpen()"
-    aria-controls="support-chat"
-    (click)="toggleChat()">
-    <span aria-hidden="true">✦</span>
-    <span>Chat</span>
-  </button>
+  @if (!chatOpen()) {
+    <button
+      class="chat-launcher"
+      type="button"
+      aria-controls="support-chat"
+      (click)="toggleChat()">
+      <span aria-hidden="true">✦</span>
+      <span>Chat</span>
+    </button>
+  }
 
   @if (chatOpen()) {
     <section
@@ -254,31 +255,86 @@
       <header class="chat-header">
         <div>
           <strong id="chat-title">Transport assistant</strong>
-          <span>We are here to help</span>
+          <span>Ask us about your transport operations</span>
         </div>
-        <button
-          class="chat-window-toggle"
-          type="button"
-          [attr.aria-label]="chatCollapsed() ? 'Expand chat window' : 'Collapse chat window'"
-          [attr.aria-expanded]="!chatCollapsed()"
-          (click)="toggleChatCollapsed()">
-          {{ chatCollapsed() ? '+' : '−' }}
-        </button>
+        <div class="chat-header-actions">
+          <button
+            class="chat-window-toggle"
+            type="button"
+            [attr.aria-label]="chatCollapsed() ? 'Expand chat window' : 'Collapse chat window'"
+            [attr.aria-expanded]="!chatCollapsed()"
+            (click)="toggleChatCollapsed()">
+            {{ chatCollapsed() ? '+' : '−' }}
+          </button>
+          <button
+            class="chat-window-close"
+            type="button"
+            aria-label="Close chat"
+            (click)="closeChat()">
+            ×
+          </button>
+        </div>
       </header>
 
       @if (!chatCollapsed()) {
         <div class="chat-body">
+          <nav class="chat-session-nav" aria-label="Chat sessions">
+            <div class="chat-session-heading">
+              <strong>Recent chats</strong>
+              <button
+                type="button"
+                class="chat-new-session"
+                aria-label="Start a new chat"
+                (click)="startNewChat()">
+                <span aria-hidden="true">+</span>
+                New chat
+              </button>
+            </div>
+            @if (chatSessionsLoading()) {
+              <p class="chat-session-status">Loading sessions...</p>
+            } @else if (recentChatSessions().length === 0) {
+              <p class="chat-session-status">No previous chats</p>
+            } @else {
+              <div class="chat-session-list">
+                @for (session of recentChatSessions(); track session.sessionId) {
+                  <button
+                    class="chat-session"
+                    type="button"
+                    [class.chat-session-active]="activeChatSessionId() === session.sessionId"
+                    [attr.aria-pressed]="activeChatSessionId() === session.sessionId"
+                    [title]="session.lastMessage || session.sessionId"
+                    (click)="selectChatSession(session)">
+                    <span class="chat-session-pill">{{ session.sessionId }}</span>
+                    @if (activeChatSessionId() === session.sessionId) {
+                      <span class="chat-session-active-dot" aria-hidden="true">●</span>
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </nav>
+
+          @if (chatHistoryLoading()) {
+            <p class="chat-loading" role="status">Loading chat history...</p>
+          }
           <div class="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
-            @if (chatMessages().length === 0) {
+            @if (chatMessages().length === 0 && !chatHistoryLoading()) {
               <p class="chat-welcome">
-                Hi! Ask a question about your transport operations. I am using a generic demo
-                response for now.
+                Hi! Ask a question about your transport operations to get started.
               </p>
             }
             @for (message of chatMessages(); track $index) {
-              <p class="chat-message" [class.chat-message-user]="message.role === 'user'">
-                {{ message.text }}
-              </p>
+              @if (message.role === 'assistant') {
+                <div
+                  class="chat-message chat-message-assistant"
+                  [innerHTML]="formatAssistantMessage(message.text)">
+                </div>
+              } @else {
+                <p class="chat-message chat-message-user">{{ message.text }}</p>
+              }
+            }
+            @if (chatSending()) {
+              <p class="chat-loading" role="status">Assistant is responding...</p>
             }
           </div>
 
@@ -295,8 +351,13 @@
               [value]="chatDraft()"
               (input)="updateChatDraft($event)"
               placeholder="Type your message..."
-              autocomplete="off">
-            <button type="submit" [disabled]="!chatDraft().trim()">Send</button>
+              autocomplete="off"
+              [disabled]="chatSending() || chatHistoryLoading()">
+            <button
+              type="submit"
+              [disabled]="!chatDraft().trim() || chatSending() || chatHistoryLoading()">
+              Send
+            </button>
           </form>
         </div>
       }

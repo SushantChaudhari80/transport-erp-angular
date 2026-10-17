@@ -10,11 +10,6 @@ import { LoginComponent } from './pages/login/login';
 
 describe('App routes', () => {
   const apiUrl = Host.API_URL.replace(/\/+$/, '');
-  const chatHistoryKey = 'transport-erp-chat-history';
-
-  afterEach(() => {
-    window.localStorage.removeItem(chatHistoryKey);
-  });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -169,11 +164,6 @@ describe('App routes', () => {
     });
     await harness.fixture.whenStable();
 
-    window.localStorage.setItem(chatHistoryKey, JSON.stringify([
-      { role: 'user', text: 'Where are my trips?' },
-      { role: 'assistant', text: 'This is a saved reply.' },
-    ]));
-
     const profileButton = harness.fixture.nativeElement.querySelector(
       '.profile-toggle',
     ) as HTMLButtonElement;
@@ -188,12 +178,11 @@ describe('App routes', () => {
     ) as HTMLButtonElement;
     logoutButton.click();
     await harness.fixture.whenStable();
-
     expect(harness.fixture.nativeElement.querySelector('.login-page')).not.toBeNull();
-    expect(window.localStorage.getItem(chatHistoryKey)).toBeNull();
+    expect(harness.fixture.nativeElement.querySelector('.login-page')).not.toBeNull();
   });
 
-  it('should show the chat widget and persist user queries with a generic reply', async () => {
+  it('should load chat sessions and history and send messages to the chat API', async () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/dashboard');
 
@@ -219,6 +208,69 @@ describe('App routes', () => {
     launcher.click();
     harness.detectChanges();
 
+    const sessionsRequest = httpTesting.expectOne(`${apiUrl}/api/rag/chat/sessions`);
+    sessionsRequest.flush([
+      {
+        sessionId: 'older-session',
+        lastMessage: 'Older conversation',
+        messageCount: 2,
+        lastMessageAt: '2026-10-14T10:00:00.000Z',
+      },
+      {
+        sessionId: 'latest-session',
+        lastMessage: 'Latest conversation',
+        messageCount: 4,
+        lastMessageAt: '2026-10-16T10:00:00.000Z',
+      },
+      {
+        sessionId: 'middle-session',
+        lastMessage: 'Middle conversation',
+        messageCount: 2,
+        lastMessageAt: '2026-10-15T10:00:00.000Z',
+      },
+      {
+        sessionId: 'hidden-session',
+        lastMessage: 'Not shown in recent sessions',
+        messageCount: 2,
+        lastMessageAt: '2026-10-13T10:00:00.000Z',
+      },
+    ]);
+    harness.detectChanges();
+
+    const sessionButtons = Array.from(
+      harness.fixture.nativeElement.querySelectorAll('.chat-session'),
+    ) as HTMLButtonElement[];
+    expect(sessionButtons).toHaveLength(4);
+    const latestSessionButton = sessionButtons.find((button) =>
+      button.textContent?.includes('latest-session'),
+    );
+    expect(latestSessionButton).toBeDefined();
+    latestSessionButton?.click();
+    harness.detectChanges();
+
+    const historyRequest = httpTesting.expectOne(
+      `${apiUrl}/api/rag/chat/history/latest-session`,
+    );
+    historyRequest.flush([
+      {
+        id: 1,
+        sessionId: 'latest-session',
+        role: 'user',
+        message: 'Earlier question',
+        createdAt: '2026-10-16T09:00:00.000Z',
+      },
+      {
+        id: 2,
+        sessionId: 'latest-session',
+        role: 'assistant',
+        message: 'Earlier answer',
+        createdAt: '2026-10-16T09:00:01.000Z',
+      },
+    ]);
+    harness.detectChanges();
+    expect(harness.fixture.nativeElement.textContent).toContain('Earlier question');
+    expect(harness.fixture.nativeElement.textContent).toContain('Earlier answer');
+
     const input = harness.fixture.nativeElement.querySelector(
       '#chat-message',
     ) as HTMLInputElement;
@@ -229,11 +281,71 @@ describe('App routes', () => {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     harness.detectChanges();
 
-    const history = JSON.parse(window.localStorage.getItem(chatHistoryKey) ?? '[]');
-    expect(history).toHaveLength(2);
-    expect(history[0]).toEqual({ role: 'user', text: 'How many vehicles are active?' });
-    expect(history[1].role).toBe('assistant');
-    expect(history[1].text).toContain('demo assistant');
-    expect(harness.fixture.nativeElement.textContent).toContain('How many vehicles are active?');
+    const messageRequest = httpTesting.expectOne(`${apiUrl}/api/rag/chat`);
+    expect(messageRequest.request.method).toBe('POST');
+    expect(messageRequest.request.body).toEqual({
+      sessionId: 'latest-session',
+      message: 'How many vehicles are active?',
+    });
+    messageRequest.flush({
+      sessionId: 'latest-session',
+      answer:
+        'Based on the documents, Transport ERP includes: * **Customer Orders:** Create and maintain customer work records. * **Vehicle Register:** Maintain vehicle records.\n\nIt also supports **reporting** and `<script>alert(1)</script>`.',
+      sourceDocuments: [],
+      incidentCreated: false,
+      incident: null,
+    });
+    httpTesting.expectOne(`${apiUrl}/api/rag/chat/sessions`).flush([
+      {
+        sessionId: 'latest-session',
+        lastMessage: 'How many vehicles are active?',
+        messageCount: 6,
+        lastMessageAt: '2026-10-16T10:01:00.000Z',
+      },
+    ]);
+    harness.detectChanges();
+
+    expect(harness.fixture.nativeElement.textContent).toContain(
+      'How many vehicles are active?',
+    );
+    expect(harness.fixture.nativeElement.textContent).toContain(
+      'Customer Orders:',
+    );
+    const assistantMessages = harness.fixture.nativeElement.querySelectorAll(
+      '.chat-message-assistant',
+    ) as NodeListOf<HTMLElement>;
+    const assistantMessage = assistantMessages[assistantMessages.length - 1];
+    expect(assistantMessage.querySelectorAll('ul > li')).toHaveLength(2);
+    expect(assistantMessage.querySelector('strong')?.textContent).toContain('Customer Orders:');
+    expect(assistantMessage.querySelector('p strong')?.textContent).toBe('reporting');
+    expect(assistantMessage.querySelector('script')).toBeNull();
+
+    (harness.fixture.nativeElement.querySelector('.chat-new-session') as HTMLButtonElement)
+      .click();
+    harness.detectChanges();
+    expect(harness.fixture.nativeElement.textContent).not.toContain('Earlier question');
+    const activeSessionButton = harness.fixture.nativeElement.querySelector(
+      '.chat-session-active',
+    ) as HTMLButtonElement;
+    expect(activeSessionButton).not.toBeNull();
+    expect(activeSessionButton.title).toBe('New conversation');
+    expect(activeSessionButton.getAttribute('aria-pressed')).toBe('true');
+
+    input.value = 'Start a fresh conversation';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    harness.detectChanges();
+    (harness.fixture.nativeElement.querySelector('.chat-form') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    const newSessionRequest = httpTesting.expectOne(`${apiUrl}/api/rag/chat`);
+    expect(newSessionRequest.request.body.sessionId).not.toBe('latest-session');
+    expect(newSessionRequest.request.body.message).toBe('Start a fresh conversation');
+    newSessionRequest.flush({
+      sessionId: newSessionRequest.request.body.sessionId,
+      answer: 'Welcome to a new chat.',
+      sourceDocuments: [],
+      incidentCreated: false,
+      incident: null,
+    });
+    httpTesting.expectOne(`${apiUrl}/api/rag/chat/sessions`).flush([]);
   });
 });

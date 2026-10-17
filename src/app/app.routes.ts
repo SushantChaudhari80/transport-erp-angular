@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminAuthGuard } from './core/guards/admin-auth.guard';
 
 export const routes: Routes = [
   {
@@ -10,6 +11,40 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./pages/login/login').then(({ LoginComponent }) => LoginComponent),
+  },
+  {
+    path: 'admin',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () =>
+          import('./pages/admin-login/admin-login.component').then(
+            ({ AdminLoginComponent }) => AdminLoginComponent,
+          ),
+      },
+      {
+        path: '',
+        canActivate: [adminAuthGuard],
+        loadComponent: () =>
+          import('./layout/admin-layout.component').then(
+            ({ AdminLayoutComponent }) => AdminLayoutComponent,
+          ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'chatbot',
+          },
+          {
+            path: 'chatbot',
+            loadComponent: () =>
+              import('./pages/admin-chatbot/admin-chatbot.component').then(
+                ({ AdminChatbotComponent }) => AdminChatbotComponent,
+              ),
+          },
+        ],
+      },
+    ],
   },
   {
     path: '',

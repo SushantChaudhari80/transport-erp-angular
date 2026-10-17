@@ -1,0 +1,121 @@
+<section class="chatbot-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">AI &amp; AUTOMATION <span>/</span> KNOWLEDGE + CONVERSATIONS</p>
+      <h1>ChatBot management</h1>
+      <p class="page-intro">Keep the assistant’s knowledge current and inspect how it supports your operations.</p>
+    </div>
+    <div class="service-state"><span></span> RAG ASSISTANT <small>CONNECTED VIA API</small></div>
+  </header>
+
+  @if (error()) {
+    <div class="feedback feedback-error" role="alert"><span aria-hidden="true">!</span><p>{{ error() }}</p><button type="button" aria-label="Dismiss error" (click)="error.set('')">×</button></div>
+  }
+  @if (notice()) {
+    <div class="feedback feedback-success" role="status"><span aria-hidden="true">✓</span><p>{{ notice() }}</p><button type="button" aria-label="Dismiss message" (click)="notice.set('')">×</button></div>
+  }
+
+  <section class="metric-row" aria-label="Chatbot overview">
+    <article class="metric metric-documents"><span class="metric-icon" aria-hidden="true">▤</span><div><span>Knowledge documents</span><strong>{{ documents().length }}</strong></div><small>INDEXED SOURCES</small></article>
+    <article class="metric metric-sessions"><span class="metric-icon" aria-hidden="true">◷</span><div><span>Chat sessions</span><strong>{{ sessions().length }}</strong></div><small>RECORDED SESSIONS</small></article>
+    <article class="metric metric-messages"><span class="metric-icon" aria-hidden="true">✳</span><div><span>Messages in view</span><strong>{{ history().length }}</strong></div><small>{{ selectedSessionId() }}</small></article>
+  </section>
+
+  <div class="management-grid">
+    <section class="panel knowledge-panel" aria-labelledby="knowledge-title">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">01 / KNOWLEDGE BASE</span><h2 id="knowledge-title">Source documents</h2></div>
+        <button type="button" class="icon-button refresh-button" aria-label="Refresh documents" title="Refresh documents" [disabled]="busy().documents" (click)="loadDocuments()">↻</button>
+      </div>
+      <p class="panel-description">Documents are indexed into searchable knowledge for the assistant.</p>
+
+      <label class="upload-zone" for="document-upload" [class.uploading]="busy().upload">
+        <input id="document-upload" type="file" accept=".pdf,.doc,.docx,.txt,.md" [disabled]="busy().upload" (change)="uploadDocument($event)" />
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <span><strong>{{ busy().upload ? 'Indexing document…' : 'Add a knowledge document' }}</strong><small>Choose a PDF, Word document or text file</small></span>
+        <span class="browse-label">{{ busy().upload ? 'PLEASE WAIT' : 'BROWSE FILES' }}</span>
+      </label>
+
+      <div class="list-heading"><span>DOCUMENT NAME</span><span>{{ busy().documents ? 'SYNCING' : documents().length + ' SOURCES' }}</span></div>
+      @if (busy().documents && documents().length === 0) {
+        <div class="empty-state"><span class="loading-mark"></span><p>Loading your knowledge base…</p></div>
+      } @else if (documents().length === 0) {
+        <div class="empty-state"><span class="empty-icon" aria-hidden="true">▤</span><strong>No documents yet</strong><p>Upload a source document to give the assistant operational context.</p></div>
+      } @else {
+        <ul class="document-list">
+          @for (document of documents(); track document) {
+            <li class="document-item">
+              <span class="file-icon" aria-hidden="true">PDF</span>
+              <span class="file-details"><strong [title]="document">{{ document }}</strong><small>Available to the assistant</small></span>
+              <button type="button" class="icon-button delete-button" [attr.aria-label]="'Delete ' + document" [title]="'Delete ' + document" (click)="deleteDocument(document)">×</button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="panel sessions-panel" aria-labelledby="sessions-title">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">02 / CONVERSATION LOG</span><h2 id="sessions-title">Chat sessions</h2></div>
+        <button type="button" class="icon-button refresh-button" aria-label="Refresh chat sessions" title="Refresh chat sessions" [disabled]="busy().sessions" (click)="loadSessions()">↻</button>
+      </div>
+      <p class="panel-description">Review conversations and open a session to inspect its full history.</p>
+
+      <div class="session-list-heading"><span>SESSION</span><span>MESSAGES</span><span>LAST ACTIVE</span></div>
+      @if (busy().sessions && sessions().length === 0) {
+        <div class="empty-state compact"><span class="loading-mark"></span><p>Loading sessions…</p></div>
+      } @else if (sessions().length === 0) {
+        <div class="empty-state compact"><span class="empty-icon" aria-hidden="true">◷</span><strong>No conversations recorded</strong><p>New assistant conversations will appear here.</p></div>
+      } @else {
+        <ul class="session-list">
+          @for (session of sessions(); track session.sessionId) {
+            <li>
+              <button type="button" class="session-item" [class.selected]="selectedSessionId() === session.sessionId" (click)="selectSession(session.sessionId)" [attr.aria-pressed]="selectedSessionId() === session.sessionId">
+                <span class="session-avatar" aria-hidden="true">◌</span>
+                <span class="session-details"><strong>{{ session.sessionId }}</strong><small>{{ session.lastMessage || 'No preview available' }}</small></span>
+                <span class="message-count">{{ session.messageCount }}</span>
+                <time [attr.datetime]="session.lastMessageAt">{{ session.lastMessageAt | date: 'MMM d, HH:mm' }}</time>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <section class="panel conversation-panel" aria-labelledby="conversation-title">
+    <div class="conversation-heading">
+      <div class="panel-heading">
+        <div><span class="panel-kicker">03 / ASSISTANT TEST CONSOLE</span><h2 id="conversation-title">Conversation history</h2></div>
+      </div>
+      <div class="conversation-tools">
+        <label class="session-input"><span>SESSION ID</span><input name="sessionId" maxlength="100" [ngModel]="selectedSessionId()" (ngModelChange)="selectedSessionId.set($event)" (keydown.enter)="$event.preventDefault(); loadHistory()" /></label>
+        <button type="button" class="text-button" [disabled]="busy().history" (click)="loadHistory()">Load session</button>
+        <button type="button" class="clear-button" [disabled]="busy().clear || history().length === 0" (click)="clearHistory()"><span aria-hidden="true">⌫</span> Clear history</button>
+      </div>
+    </div>
+
+    <div class="conversation-body" aria-live="polite" aria-relevant="additions text">
+      @if (busy().history && history().length === 0) {
+        <div class="empty-state conversation-empty"><span class="loading-mark"></span><p>Loading conversation…</p></div>
+      } @else if (history().length === 0) {
+        <div class="empty-state conversation-empty"><span class="empty-icon" aria-hidden="true">✳</span><strong>Ready to test the assistant</strong><p>Send a message below, or load a session to review its history.</p></div>
+      } @else {
+        <ol class="message-list">
+          @for (entry of history(); track entry.id) {
+            <li class="message-row" [class.assistant-row]="entry.role === 'assistant'">
+              <span class="message-avatar" [class.assistant-avatar]="entry.role === 'assistant'" aria-hidden="true">{{ entry.role === 'assistant' ? '✳' : 'U' }}</span>
+              <div class="message-content"><div class="message-meta"><strong>{{ entry.role === 'assistant' ? 'Transport Assistant' : 'User' }}</strong><time [attr.datetime]="entry.createdAt">{{ entry.createdAt | date: 'MMM d, y · HH:mm:ss' }}</time></div><p>{{ entry.message }}</p></div>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+
+    <form class="composer" (ngSubmit)="sendMessage()">
+      <label class="visually-hidden" for="chat-message">Message the assistant</label>
+      <textarea id="chat-message" name="message" rows="2" maxlength="10000" placeholder="Ask the assistant about your transport operations…" [ngModel]="messageDraft()" (ngModelChange)="messageDraft.set($event)" [disabled]="busy().send"></textarea>
+      <div class="composer-footer"><span>{{ messageDraft().length }} / 10,000 <span class="composer-hint">· Responses use the selected session</span></span><button type="submit" [disabled]="busy().send || !messageDraft().trim() || !selectedSessionId().trim()">{{ busy().send ? 'Sending…' : 'Send message' }} <span aria-hidden="true">↗</span></button></div>
+    </form>
+  </section>
+</section>

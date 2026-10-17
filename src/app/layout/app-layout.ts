@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { isPlatformBrowser } from '@angular/common';
-import { Component, inject, PLATFORM_ID, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { ChatHistoryEntry, ChatService, ChatSession } from '../core/services/chat.service';
 import { DashboardService } from '../core/services/dashboard.service';
 import { Customer } from '../models/dashboard.model';
 
@@ -11,18 +11,20 @@ interface ChatMessage {
   text: string;
 }
 
-const CHAT_HISTORY_STORAGE_KEY = 'transport-erp-chat-history';
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-function isChatMessage(value: unknown): value is ChatMessage {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-
-  const message = value as Record<string, unknown>;
-  return (
-    (message['role'] === 'user' || message['role'] === 'assistant') &&
-    typeof message['text'] === 'string'
-  );
+function formatInlineMarkdown(text: string): string {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
 }
 
 @Component({
@@ -33,9 +35,9 @@ function isChatMessage(value: unknown): value is ChatMessage {
   styleUrl: './app-layout.css',
 })
 export class AppLayoutComponent {
+  private readonly chatService = inject(ChatService);
   private readonly dashboardService = inject(DashboardService);
   private readonly router = inject(Router);
-  private readonly platformId = inject(PLATFORM_ID);
 
   readonly mobileMenuOpen = signal(false);
   readonly sidebarCollapsed = signal(false);
@@ -49,8 +51,37 @@ export class AppLayoutComponent {
   readonly chatCollapsed = signal(false);
   readonly chatDraft = signal('');
   readonly chatMessages = signal<ChatMessage[]>([]);
+  readonly chatSessions = signal<ChatSession[]>([]);
+  readonly activeChatSessionId = signal<string | null>(null);
+  readonly recentChatSessions = computed(() => {
+    const sortedSessions = [...this.chatSessions()].sort(
+      (first, second) =>
+        new Date(second.lastMessageAt).getTime() - new Date(first.lastMessageAt).getTime(),
+    );
+    const activeSessionId = this.activeChatSessionId();
+    if (!activeSessionId) {
+      return sortedSessions.slice(0, 3);
+    }
+
+    const activeSession = sortedSessions.find(
+      (session) => session.sessionId === activeSessionId,
+    ) ?? {
+      sessionId: activeSessionId,
+      lastMessage: 'New conversation',
+      messageCount: 0,
+      lastMessageAt: '',
+    };
+    return [
+      activeSession,
+      ...sortedSessions
+        .filter((session) => session.sessionId !== activeSessionId)
+        .slice(0, 3),
+    ];
+  });
+  readonly chatSessionsLoading = signal(false);
+  readonly chatHistoryLoading = signal(false);
+  readonly chatSending = signal(false);
   readonly chatError = signal('');
-  private chatHistoryLoaded = false;
 
   constructor() {
     this.dashboardService.getCustomer().subscribe({
@@ -97,17 +128,9 @@ export class AppLayoutComponent {
 
   logout(): void {
     this.closeProfile();
-
-    if (isPlatformBrowser(this.platformId)) {
-      try {
-        window.localStorage.removeItem(CHAT_HISTORY_STORAGE_KEY);
-      } catch (error) {
-        console.error('Unable to clear chatbot history on logout:', error);
-      }
-    }
-
     this.chatMessages.set([]);
-    this.chatHistoryLoaded = false;
+    this.chatSessions.set([]);
+    this.activeChatSessionId.set(null);
     void this.router.navigate(['/login']);
   }
 
@@ -118,13 +141,51 @@ export class AppLayoutComponent {
     }
 
     this.chatError.set('');
-    this.loadChatHistory();
+    if (!this.activeChatSessionId()) {
+      this.startNewChat();
+    }
+    this.loadChatSessions();
     this.chatCollapsed.set(false);
     this.chatOpen.set(true);
   }
 
+  closeChat(): void {
+    this.chatOpen.set(false);
+  }
+
   toggleChatCollapsed(): void {
     this.chatCollapsed.update((collapsed) => !collapsed);
+  }
+
+  startNewChat(): void {
+    this.activeChatSessionId.set(crypto.randomUUID());
+    this.chatMessages.set([]);
+    this.chatDraft.set('');
+    this.chatHistoryLoading.set(false);
+    this.chatError.set('');
+  }
+
+  selectChatSession(session: ChatSession): void {
+    this.activeChatSessionId.set(session.sessionId);
+    this.chatMessages.set([]);
+    this.chatError.set('');
+    this.chatHistoryLoading.set(true);
+
+    this.chatService.getHistory(session.sessionId).subscribe({
+      next: (history) => {
+        if (this.activeChatSessionId() === session.sessionId) {
+          this.chatMessages.set(history.map((entry) => this.toChatMessage(entry)));
+          this.chatHistoryLoading.set(false);
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load chatbot session history:', error);
+        if (this.activeChatSessionId() === session.sessionId) {
+          this.chatHistoryLoading.set(false);
+          this.chatError.set('This chat history could not be loaded.');
+        }
+      },
+    });
   }
 
   updateChatDraft(event: Event): void {
@@ -136,23 +197,98 @@ export class AppLayoutComponent {
 
   sendChatMessage(): void {
     const text = this.chatDraft().trim();
-    if (!text) {
+    const sessionId = this.activeChatSessionId();
+    if (!text || !sessionId || this.chatSending() || this.chatHistoryLoading()) {
       return;
     }
 
-    const messages = [
-      ...this.chatMessages(),
-      { role: 'user' as const, text },
-      {
-        role: 'assistant' as const,
-        text: 'Thanks for your message! I am a demo assistant for now. Chat support will be available soon.',
-      },
-    ];
-
-    this.chatMessages.set(messages);
+    this.chatMessages.update((messages) => [...messages, { role: 'user', text }]);
     this.chatDraft.set('');
     this.chatError.set('');
-    this.saveChatHistory(messages);
+    this.chatSending.set(true);
+
+    this.chatService.sendMessage(sessionId, text).subscribe({
+      next: (response) => {
+        if (this.activeChatSessionId() === sessionId) {
+          this.chatMessages.update((messages) => [
+            ...messages,
+            { role: 'assistant', text: response.answer },
+          ]);
+          this.loadChatSessions();
+        }
+        this.chatSending.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to send chatbot message:', error);
+        this.chatSending.set(false);
+        if (this.activeChatSessionId() === sessionId) {
+          this.chatError.set('Your message could not be sent. Please try again.');
+        }
+      },
+    });
+  }
+
+  formatAssistantMessage(text: string): string {
+    const normalizedText = text
+      .replace(/\r\n?/g, '\n')
+      .replace(/[ \t]+\*\s+(?=\*\*)/g, '\n* ');
+    const lines = normalizedText.split('\n');
+    const html: string[] = [];
+    let paragraph: string[] = [];
+    let listType: 'ul' | 'ol' | null = null;
+
+    const flushParagraph = (): void => {
+      if (paragraph.length > 0) {
+        html.push(`<p>${formatInlineMarkdown(paragraph.join(' '))}</p>`);
+        paragraph = [];
+      }
+    };
+    const closeList = (): void => {
+      if (listType) {
+        html.push(`</${listType}>`);
+        listType = null;
+      }
+    };
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        flushParagraph();
+        closeList();
+        continue;
+      }
+
+      const heading = /^(#{1,3})\s+(.+)$/.exec(trimmedLine);
+      if (heading) {
+        flushParagraph();
+        closeList();
+        const level = heading[1].length;
+        html.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`);
+        continue;
+      }
+
+      const unorderedItem = /^(?:[-*•])\s+(.+)$/.exec(trimmedLine);
+      const orderedItem = /^\d+[.)]\s+(.+)$/.exec(trimmedLine);
+      const item = unorderedItem ?? orderedItem;
+      if (item) {
+        flushParagraph();
+        const nextListType = unorderedItem ? 'ul' : 'ol';
+        if (listType !== nextListType) {
+          closeList();
+          listType = nextListType;
+          html.push(`<${listType}>`);
+        }
+        html.push(`<li>${formatInlineMarkdown(item[1])}</li>`);
+        continue;
+      }
+
+      closeList();
+      paragraph.push(trimmedLine);
+    }
+
+    flushParagraph();
+    closeList();
+    return html.join('');
   }
 
   get customerPicture(): string | null {
@@ -169,44 +305,22 @@ export class AppLayoutComponent {
     return this.customer()?.name?.trim().charAt(0).toUpperCase() || 'A';
   }
 
-  private loadChatHistory(): void {
-    if (this.chatHistoryLoaded) {
-      return;
-    }
-
-    this.chatHistoryLoaded = true;
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    try {
-      const storedHistory = window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
-      if (storedHistory === null) {
-        return;
-      }
-
-      const history: unknown = JSON.parse(storedHistory);
-      if (!Array.isArray(history) || !history.every(isChatMessage)) {
-        throw new Error('Stored chatbot history has an invalid format.');
-      }
-
-      this.chatMessages.set(history);
-    } catch (error) {
-      console.error('Unable to load chatbot history:', error);
-      this.chatError.set('Chat history could not be loaded from this browser.');
-    }
+  private loadChatSessions(): void {
+    this.chatSessionsLoading.set(true);
+    this.chatService.getSessions().subscribe({
+      next: (sessions) => {
+        this.chatSessions.set(sessions);
+        this.chatSessionsLoading.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Unable to load chatbot sessions:', error);
+        this.chatSessionsLoading.set(false);
+        this.chatError.set('Your chat sessions could not be loaded.');
+      },
+    });
   }
 
-  private saveChatHistory(messages: ChatMessage[]): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(messages));
-    } catch (error) {
-      console.error('Unable to save chatbot history:', error);
-      this.chatError.set('Your message was sent, but chat history could not be saved.');
-    }
+  private toChatMessage(entry: ChatHistoryEntry): ChatMessage {
+    return { role: entry.role, text: entry.message };
   }
 }

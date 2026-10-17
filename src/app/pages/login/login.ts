@@ -1,7 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -17,60 +18,47 @@ export class LoginComponent {
     private readonly authService: AuthService,
   ) {}
 
-  showPassword = false;
-  loading = false;
+  readonly showPassword = signal(false);
+  readonly loading = signal(false);
 
-  username = '';
-  password = '';
-  error = '';
+  readonly username = signal('');
+  readonly password = signal('');
+  readonly error = signal('');
 
   login(): void {
-    if (this.loading) {
+    if (this.loading()) {
       return;
     }
 
-    if (!this.username.trim() || !this.password) {
-      this.error = 'Please enter username and password.';
+    if (!this.username().trim() || !this.password()) {
+      this.error.set('Please enter username and password.');
       return;
     }
 
-    this.error = '';
-    this.loading = true;
+    this.error.set('');
+    this.loading.set(true);
 
     this.authService.login(
-      this.username.trim(),
-      this.password
+      this.username().trim(),
+      this.password(),
+    ).pipe(
+      finalize(() => this.loading.set(false)),
     ).subscribe({
-
       next: (response) => {
-
-        console.log('Login API response:', response);
-
-        this.loading = false;
-
         if (response.message === 'success') {
-
           void this.router.navigate(['/dashboard']);
-
         } else {
-
-          this.error = response.message || 'Invalid username or password.';
-
+          this.error.set(response.message || 'Invalid username or password.');
         }
       },
-
       error: (error: HttpErrorResponse) => {
-
-        this.loading = false;
-
-        console.error('Login API error:', error);
-
-        this.error =
+        this.error.set(
           error.status === 401 || error.status === 403
             ? 'Invalid username or password.'
             : error.status === 0
               ? 'Unable to reach the sign-in service. Please try again.'
-              : 'Sign-in failed. Please try again.';
+              : 'Sign-in failed. Please try again.',
+        );
       }
     });
   }
