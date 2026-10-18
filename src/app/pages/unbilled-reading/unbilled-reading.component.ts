@@ -82,7 +82,6 @@ export class UnbilledReadingComponent implements OnInit {
   successMessage = '';
   invoiceError = '';
   hourlyRate: number | null = null;
-  advancePayment: number | null = null;
   gstPercent = 0;
   customer: Customer | null = null;
 
@@ -169,7 +168,7 @@ export class UnbilledReadingComponent implements OnInit {
   }
 
   get invoiceDue(): number {
-    return this.invoiceTotal - this.numberValue(this.advancePayment);
+    return this.invoiceTotal;
   }
 
   loadReadings(): void {
@@ -301,7 +300,6 @@ export class UnbilledReadingComponent implements OnInit {
       return;
     }
     this.hourlyRate = null;
-    this.advancePayment = 0;
     this.gstPercent = 0;
     this.invoiceError = '';
     this.showInvoiceModal = true;
@@ -332,13 +330,10 @@ export class UnbilledReadingComponent implements OnInit {
       this.hourlyRate === null ||
       !Number.isFinite(this.hourlyRate) ||
       this.hourlyRate < 0 ||
-      this.advancePayment === null ||
-      !Number.isFinite(this.advancePayment) ||
-      this.advancePayment < 0 ||
       !Number.isFinite(this.gstPercent) ||
       this.gstPercent < 0
     ) {
-      this.invoiceError = 'Enter a valid hourly rate and non-negative advance/GST values.';
+      this.invoiceError = 'Enter a valid hourly rate and non-negative GST value.';
       return;
     }
     if (this.selectedReadings.some((reading) => this.totalHoursNumber(reading) === null)) {
@@ -490,7 +485,7 @@ export class UnbilledReadingComponent implements OnInit {
         <tr><th>SGST @ ${this.formatNumber(this.gstPercent)}%</th><td>${this.formatNumber(sgst)}</td></tr>
         <tr><th>Total Tax Amount</th><td>${this.formatNumber(this.invoiceTax)}</td></tr>
         <tr><th>Total Invoice Value</th><td>${this.formatNumber(this.invoiceTotal)}</td></tr>
-        <tr><th>Total Amount to Pay</th><td>${this.formatNumber(this.advancePayment)}</td></tr>
+        <tr><th>Total Amount to Pay</th><td>${this.formatNumber(0)}</td></tr>
         <tr><th>Total Due Amount</th><td>${this.formatNumber(this.invoiceDue)}</td></tr>
       </tbody></table></section>
       <section class="bank"><p><strong>Bank Name:</strong> ${escapeHtml(customer.bankName || '')}</p>

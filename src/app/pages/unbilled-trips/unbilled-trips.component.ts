@@ -79,7 +79,6 @@ export class UnbilledTripsComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
   invoiceError = '';
-  advancePayment: number | null = null;
   soilRateOverride: number | null = null;
   gstPercent = 0;
 
@@ -173,7 +172,7 @@ export class UnbilledTripsComponent implements OnInit {
   }
 
   get invoiceDue(): number {
-    return this.invoiceTotal - (this.advancePayment ?? 0);
+    return this.invoiceTotal;
   }
 
   loadTrips(): void {
@@ -263,10 +262,6 @@ export class UnbilledTripsComponent implements OnInit {
       this.errorMessage = 'Select trips for one customer with a valid customer name.';
       return;
     }
-    this.advancePayment = selected.reduce(
-      (sum, trip) => sum + this.numberValue(trip.advance),
-      0,
-    );
     this.soilRateOverride = null;
     this.gstPercent = 0;
     this.invoiceError = '';
@@ -296,9 +291,6 @@ export class UnbilledTripsComponent implements OnInit {
       return;
     }
     if (
-      this.advancePayment === null ||
-      !Number.isFinite(this.advancePayment) ||
-      this.advancePayment < 0 ||
       !Number.isFinite(this.gstPercent) ||
       this.gstPercent < 0 ||
       (this.soilRateOverride !== null &&
@@ -457,7 +449,7 @@ export class UnbilledTripsComponent implements OnInit {
         <tr><th>SGST @ ${this.formatNumber(this.gstPercent)}%</th><td colspan="6">${this.formatNumber(sgst)}</td></tr>
         <tr><th>Total Tax</th><td colspan="6">${this.formatNumber(this.invoiceTax)}</td></tr>
         <tr><th>Total Invoice Value</th><td colspan="6">${this.formatNumber(this.invoiceTotal)}</td></tr>
-        <tr><th>Total Amount to Pay</th><td colspan="6">${this.formatNumber(this.advancePayment ?? 0)}</td></tr>
+        <tr><th>Total Amount to Pay</th><td colspan="6">${this.formatNumber(0)}</td></tr>
         <tr><th>Total Due Amount</th><td colspan="6">${this.formatNumber(this.invoiceDue)}</td></tr>
       </tbody></table></section>
       <section class="bank"><p><strong>Bank Name:</strong> ${escapeHtml(owner.bankName || '')}</p>

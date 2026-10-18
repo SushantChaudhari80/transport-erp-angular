@@ -148,6 +148,7 @@ describe('OrdersComponent', () => {
 
     fixture.componentInstance.createOrderForm = {
       customer_name: 'Acme Transport',
+      phone_no: '555-0100',
       address: '12 Fleet Road',
       advance: 2500,
     };
@@ -158,6 +159,7 @@ describe('OrdersComponent', () => {
     expect(orderRequest.request.method).toBe('POST');
     expect(orderRequest.request.body).toEqual({
       customer_name: 'Acme Transport',
+      phone_no: '555-0100',
       address: '12 Fleet Road',
       machine_numbers: 'TR-101',
       advance: 2500,
@@ -193,6 +195,7 @@ describe('OrdersComponent', () => {
     httpTesting.expectOne('http://localhost:8081/api/vehicles/getAll').flush([]);
     fixture.componentInstance.createOrderForm = {
       customer_name: 'Acme Transport',
+      phone_no: '555-0100',
       address: '12 Fleet Road',
       advance: 2500,
     };
@@ -225,15 +228,16 @@ describe('OrdersComponent', () => {
   it('should validate the new order fields before sending requests', () => {
     httpTesting.expectOne('http://localhost:8081/api/order/getAll').flush([]);
     fixture.componentInstance.createOrderForm = {
-      customer_name: '  ',
-      address: '',
-      advance: -1,
+      customer_name: 'Acme Transport',
+      phone_no: '',
+      address: '12 Fleet Road',
+      advance: 0,
     };
 
     fixture.componentInstance.submitCreateOrder();
 
     expect(fixture.componentInstance.createOrderError).toContain(
-      'Enter a customer name, address',
+      'phone number',
     );
     httpTesting.expectNone((request) =>
       request.url.endsWith('/api/order/add') || request.url.endsWith('/api/payment/add'),

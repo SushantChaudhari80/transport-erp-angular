@@ -400,6 +400,19 @@
             </div>
 
             <div class="form-field">
+              <label for="newOrderPhone">Customer Phone</label>
+              <input
+                id="newOrderPhone"
+                name="phone_no"
+                type="tel"
+                autocomplete="tel"
+                placeholder="Enter phone number"
+                [(ngModel)]="createOrderForm.phone_no"
+                [disabled]="creatingOrder"
+                required>
+            </div>
+
+            <div class="form-field">
               <label for="newOrderAdvance">Advance Payment</label>
               <input
                 id="newOrderAdvance"

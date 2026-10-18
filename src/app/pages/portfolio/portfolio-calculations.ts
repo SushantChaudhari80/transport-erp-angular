@@ -101,6 +101,42 @@ export function filterRowsByDate(
   });
 }
 
+export function filterRowsWithinOrderDates(
+  rows: PortfolioRow[],
+  dateField: string,
+  orders: PortfolioRow[],
+  range: PortfolioDateRange,
+): PortfolioRow[] {
+  const dateFiltered = filterRowsByDate(rows, dateField, range);
+  if (orders.length === 0) {
+    return dateFiltered;
+  }
+
+  const today = localDay(new Date());
+  const orderRanges = orders.flatMap((order) => {
+    const start = parsePortfolioDate(order['order_date']);
+    const deliveryValue = order['delivery_date'];
+    const hasDeliveryDate =
+      deliveryValue !== null &&
+      deliveryValue !== undefined &&
+      String(deliveryValue).trim() !== '';
+    const end = hasDeliveryDate ? parsePortfolioDate(deliveryValue) : today;
+    if (!start || !end || localDay(end).getTime() < localDay(start).getTime()) {
+      return [];
+    }
+    return [{ start: localDay(start).getTime(), end: localDay(end).getTime() }];
+  });
+
+  return dateFiltered.filter((row) => {
+    const date = parsePortfolioDate(row[dateField]);
+    if (!date) {
+      return false;
+    }
+    const dateValue = localDay(date).getTime();
+    return orderRanges.some(({ start, end }) => dateValue >= start && dateValue <= end);
+  });
+}
+
 export function isDieselFuelEntry(reading: PortfolioRow): boolean {
   return (
     reading['driver_name'] === null &&
@@ -117,12 +153,32 @@ export function calculatePortfolioMetrics(
   range: PortfolioDateRange,
 ): PortfolioMetrics {
   const orders = filterRowsByDate(portfolio.orders, 'order_date', range);
-  const invoices = filterRowsByDate(portfolio.invoices, 'billed_date', range);
-  const payments = filterRowsByDate(portfolio.payments, 'payment_date', range);
-  const driverPayments = filterRowsByDate(portfolio.driver_payments, 'payment_date', range);
-  const vouchers = filterRowsByDate(portfolio.vouchers, 'create_date', range);
-  const trips = filterRowsByDate(portfolio.dumper_trips, 'create_date', range);
-  const readings = filterRowsByDate(portfolio.machine_readings, 'reading_date', range);
+  const invoices = filterRowsWithinOrderDates(portfolio.invoices, 'billed_date', portfolio.orders, range);
+  const payments = filterRowsWithinOrderDates(portfolio.payments, 'payment_date', portfolio.orders, range);
+  const driverPayments = filterRowsWithinOrderDates(
+    portfolio.driver_payments,
+    'payment_date',
+    portfolio.orders,
+    range,
+  );
+  const vouchers = filterRowsWithinOrderDates(
+    portfolio.vouchers,
+    'create_date',
+    portfolio.orders,
+    range,
+  );
+  const trips = filterRowsWithinOrderDates(
+    portfolio.dumper_trips,
+    'create_date',
+    portfolio.orders,
+    range,
+  );
+  const readings = filterRowsWithinOrderDates(
+    portfolio.machine_readings,
+    'reading_date',
+    portfolio.orders,
+    range,
+  );
   const fuelEntries = readings.filter(isDieselFuelEntry);
   const machineReadings = readings.filter((reading) => !isDieselFuelEntry(reading));
   const totalMachineHours = sumMachineReadingHours(machineReadings);
@@ -186,7 +242,12 @@ export function formatPortfolioDate(value: unknown): string {
 
 export function getDeliveryDuration(order: PortfolioRow): number | null {
   const start = parsePortfolioDate(order['order_date']);
-  const end = parsePortfolioDate(order['delivery_date']);
+  const deliveryValue = order['delivery_date'];
+  const hasDeliveryDate =
+    deliveryValue !== null &&
+    deliveryValue !== undefined &&
+    String(deliveryValue).trim() !== '';
+  const end = hasDeliveryDate ? parsePortfolioDate(deliveryValue) : new Date();
   if (!start || !end || end.getTime() < start.getTime()) {
     return null;
   }

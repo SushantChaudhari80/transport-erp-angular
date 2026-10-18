@@ -31,6 +31,7 @@ interface Vehicle {
 
 interface CreateOrderForm {
   customer_name: string;
+  phone_no: string;
   address: string;
   advance: number | null;
 }
@@ -452,11 +453,12 @@ export class OrdersComponent implements OnInit {
     }
 
     const customerName = this.createOrderForm.customer_name.trim();
+    const customerPhone = this.createOrderForm.phone_no.trim();
     const customerAddress = this.createOrderForm.address.trim();
     const advance = this.createOrderForm.advance;
 
-    if (!customerName || !customerAddress || advance === null || !Number.isFinite(advance) || advance < 0) {
-      this.createOrderError = 'Enter a customer name, address, and a valid non-negative advance payment.';
+    if (!customerName || !customerPhone || !customerAddress || advance === null || !Number.isFinite(advance) || advance < 0) {
+      this.createOrderError = 'Enter a customer name, phone number, address, and a valid non-negative advance payment.';
       this.changeDetectorRef.markForCheck();
       return;
     }
@@ -467,6 +469,7 @@ export class OrdersComponent implements OnInit {
 
     const orderPayload = {
       customer_name: customerName,
+      phone_no: customerPhone,
       address: customerAddress,
       machine_numbers: Array.from(this.createSelectedVehicles).join(','),
       advance,
@@ -522,6 +525,7 @@ export class OrdersComponent implements OnInit {
   private emptyCreateOrderForm(): CreateOrderForm {
     return {
       customer_name: '',
+      phone_no: '',
       address: '',
       advance: null,
     };

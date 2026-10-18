@@ -167,11 +167,6 @@
           <input id="hourlyRate" type="number" min="0" step="0.01" [(ngModel)]="hourlyRate" required />
         </div>
 
-        <label for="advancePayment">Advance payment <span class="optional">(optional)</span></label>
-        <div class="input-with-prefix"><span>₹</span>
-          <input id="advancePayment" type="number" min="0" step="0.01" [(ngModel)]="advancePayment" />
-        </div>
-
         <label for="gstPercent">GST <span class="optional">(%)</span></label>
         <div class="input-with-suffix">
           <input id="gstPercent" type="number" min="0" step="0.01" [(ngModel)]="gstPercent" />
@@ -184,7 +179,7 @@
         <div><span>Taxable value</span><strong>₹{{ formatNumber(invoiceSubtotal) }}</strong></div>
         <div><span>CGST + SGST</span><strong>₹{{ formatNumber(invoiceTax) }}</strong></div>
         <div><span>Total invoice amount</span><strong>₹{{ formatNumber(invoiceTotal) }}</strong></div>
-        <div><span>Due after advance</span><strong>₹{{ formatNumber(invoiceDue) }}</strong></div>
+        <div><span>Due amount</span><strong>₹{{ formatNumber(invoiceDue) }}</strong></div>
       </div>
 
       <footer class="dialog-footer">

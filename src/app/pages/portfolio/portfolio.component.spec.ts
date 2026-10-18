@@ -190,8 +190,14 @@ describe('PortfolioComponent', () => {
       ],
       vehicles: [],
       drivers: [],
-      driver_payments: [],
-      vouchers: [],
+      driver_payments: [
+        { id: 1, payment_date: '02/06/2026', amount: '50' },
+        { id: 2, payment_date: '05/06/2026', amount: '200' },
+      ],
+      vouchers: [
+        { id: 1, create_date: '02/06/2026', amount: '25' },
+        { id: 2, create_date: '05/06/2026', amount: '100' },
+      ],
       dumper_trips: [
         { id: 1, create_date: '02/06/2026', total_payment: '100', is_billed: 'true' },
         { id: 2, create_date: '05/06/2026', total_payment: '200', is_billed: 'false' },
@@ -233,6 +239,10 @@ describe('PortfolioComponent', () => {
     expect(component.filteredOrders.map((order) => order['id'])).toEqual([10]);
     expect(component.filteredInvoices.map((invoice) => invoice['id'])).toEqual([1]);
     expect(component.filteredPayments.map((payment) => payment['id'])).toEqual([1]);
+    expect(component.filteredDriverPayments.map((payment) => payment['id'])).toEqual([1]);
+    expect(component.filteredVouchers.map((voucher) => voucher['id'])).toEqual([1]);
+    expect(component.metrics?.driverPaymentVolume).toBe(50);
+    expect(component.metrics?.voucherAmount).toBe(25);
     expect(component.filteredTrips.map((trip) => trip['id'])).toEqual([1]);
     expect(component.filteredReadings.map((reading) => reading['id'])).toEqual([1]);
     expect(component.metrics?.totalMachineHours).toBe(10);
@@ -251,6 +261,8 @@ describe('PortfolioComponent', () => {
     expect(component.filteredOrders.map((order) => order['id'])).toEqual([11]);
     expect(component.filteredInvoices.map((invoice) => invoice['id'])).toEqual([2]);
     expect(component.filteredPayments.map((payment) => payment['id'])).toEqual([2]);
+    expect(component.filteredDriverPayments.map((payment) => payment['id'])).toEqual([2]);
+    expect(component.filteredVouchers.map((voucher) => voucher['id'])).toEqual([2]);
     expect(component.filteredTrips.map((trip) => trip['id'])).toEqual([2]);
     expect(component.filteredReadings.map((reading) => reading['id'])).toEqual([2]);
     expect(component.metrics?.totalMachineHours).toBe(15);

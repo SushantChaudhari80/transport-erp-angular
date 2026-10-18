@@ -16,7 +16,7 @@ import { Chart, registerables } from 'chart.js';
 import { Host } from '../../core/services/host';
 import {
   calculatePortfolioMetrics,
-  filterRowsByDate,
+  filterRowsWithinOrderDates,
   formatPortfolioDate,
   getDeliveryDuration,
   isDieselFuelEntry,
@@ -727,7 +727,14 @@ export class PortfolioComponent implements OnInit, AfterViewChecked {
   }
 
   private filterRows(rows: PortfolioRow[], dateField: string): PortfolioRow[] {
-    const dateFiltered = dateField ? filterRowsByDate(rows, dateField, this.dateRange) : rows;
+    const dateFiltered = dateField
+      ? filterRowsWithinOrderDates(
+          rows,
+          dateField,
+          this.portfolio?.orders ?? [],
+          this.dateRange,
+        )
+      : rows;
     const query = this.searchTerm.trim().toLocaleLowerCase();
     if (!query) {
       return dateFiltered;

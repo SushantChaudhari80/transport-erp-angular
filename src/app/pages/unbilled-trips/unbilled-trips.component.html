@@ -152,10 +152,6 @@
 
       <div class="invoice-fields">
         <label>
-          Advance payment
-          <input type="number" min="0" step="0.01" [(ngModel)]="advancePayment" />
-        </label>
-        <label>
           Soil rate per brass <span>(leave blank to keep each trip's rate)</span>
           <input type="number" min="0" step="0.01" [(ngModel)]="soilRateOverride" placeholder="Use trip rate" />
         </label>
@@ -169,7 +165,7 @@
         <div><span>Taxable value</span><strong>{{ invoiceSubtotal | number:'1.2-2' }}</strong></div>
         <div><span>CGST + SGST</span><strong>{{ invoiceTax | number:'1.2-2' }}</strong></div>
         <div><span>Invoice total</span><strong>{{ invoiceTotal | number:'1.2-2' }}</strong></div>
-        <div><span>Due after advance</span><strong>{{ invoiceDue | number:'1.2-2' }}</strong></div>
+        <div><span>Due amount</span><strong>{{ invoiceDue | number:'1.2-2' }}</strong></div>
       </div>
 
       <footer class="modal-actions">

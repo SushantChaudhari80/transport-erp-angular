@@ -22,8 +22,14 @@ describe('portfolio calculations', () => {
     ],
     vehicles: [],
     drivers: [],
-    driver_payments: [{ id: 1, payment_date: '11/10/2026', amount: '1500' }],
-    vouchers: [{ id: 1, create_date: '11/10/2026', amount: '300' }],
+    driver_payments: [
+      { id: 1, payment_date: '11/10/2026', amount: '1500' },
+      { id: 2, payment_date: '10/10/2026', amount: '500' },
+    ],
+    vouchers: [
+      { id: 1, create_date: '11/10/2026', amount: '300' },
+      { id: 2, create_date: '10/10/2026', amount: '100' },
+    ],
     dumper_trips: [
       { id: 1, create_date: '11/10/2026', is_billed: 'true', total_payment: '1200' },
       { id: 2, create_date: '11/10/2026', is_billed: null, total_payment: '800' },
@@ -89,6 +95,15 @@ describe('portfolio calculations', () => {
         end: new Date(2026, 5, 30),
       }),
     ).toHaveLength(1);
+  });
+
+  it('limits driver payments and vouchers to order date ranges', () => {
+    const metrics = calculatePortfolioMetrics(portfolio, { start: null, end: null });
+
+    expect(metrics.driverPaymentVolume).toBe(1500);
+    expect(metrics.driverPaymentTransactions).toBe(1);
+    expect(metrics.voucherAmount).toBe(300);
+    expect(metrics.voucherCount).toBe(1);
   });
 
   it('totals diesel liters from both machine readings and diesel-only entries', () => {
@@ -209,6 +224,15 @@ describe('portfolio calculations', () => {
 
   it('calculates delivery duration only for valid order and delivery dates', () => {
     expect(getDeliveryDuration(portfolio.orders[0])).toBe(5);
-    expect(getDeliveryDuration(portfolio.orders[1])).toBeNull();
+    const today = new Date();
+    const orderStart = parsePortfolioDate(portfolio.orders[1]['order_date']);
+    expect(orderStart).not.toBeNull();
+    expect(getDeliveryDuration(portfolio.orders[1])).toBe(
+      Math.floor(
+        (new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() -
+          new Date(orderStart!.getFullYear(), orderStart!.getMonth(), orderStart!.getDate()).getTime()) /
+          86_400_000,
+      ),
+    );
   });
 });

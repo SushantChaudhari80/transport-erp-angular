@@ -134,7 +134,7 @@ describe('UnbilledReadingComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('31');
   });
 
-  it('calculates invoice amounts from selected hours, hourly rate, GST, and advance', () => {
+  it('calculates invoice amounts without subtracting an advance', () => {
     const fixture = TestBed.createComponent(UnbilledReadingComponent);
     const component = fixture.componentInstance;
     component.readings = [
@@ -144,13 +144,12 @@ describe('UnbilledReadingComponent', () => {
     component.selectedReadingIds = new Set(['1', '2']);
     component.hourlyRate = 80;
     component.gstPercent = 5;
-    component.advancePayment = 100;
 
     expect(component.selectedHours).toBe(15);
     expect(component.invoiceSubtotal).toBe(1200);
     expect(component.invoiceTax).toBe(120);
     expect(component.invoiceTotal).toBe(1320);
-    expect(component.invoiceDue).toBe(1220);
+    expect(component.invoiceDue).toBe(1320);
   });
 
   it('marks selected readings billed, saves the invoice, then opens and prints it', () => {
@@ -161,7 +160,6 @@ describe('UnbilledReadingComponent', () => {
     ];
     component.selectedReadingIds.add('9');
     component.hourlyRate = 100;
-    component.advancePayment = 50;
     component.gstPercent = 5;
 
     const printWindow = {
@@ -195,6 +193,8 @@ describe('UnbilledReadingComponent', () => {
     expect(saveRequest.request.body.invoice).toContain('&lt;Machine Company&gt;');
     expect(saveRequest.request.body.invoice).toContain('GST123');
     expect(saveRequest.request.body.invoice).toContain('MH12AB1234');
+    expect(saveRequest.request.body.invoice).toContain('Total Amount to Pay</th><td>0</td>');
+    expect(saveRequest.request.body.invoice).toContain('Total Due Amount</th><td>1,320</td>');
     saveRequest.flush('Invoice saved');
     httpTesting.expectOne(`${apiUrl}/vehicle/getAll`).flush([]);
 

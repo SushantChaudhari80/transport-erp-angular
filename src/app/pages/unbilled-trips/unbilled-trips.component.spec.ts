@@ -133,7 +133,7 @@ describe('UnbilledTripsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('31');
   });
 
-  it('calculates an adjusted invoice subtotal, GST, and due amount', () => {
+  it('calculates an adjusted invoice subtotal and due amount without an advance', () => {
     const fixture = TestBed.createComponent(UnbilledTripsComponent);
     const component = fixture.componentInstance;
     component.trips = [
@@ -143,12 +143,11 @@ describe('UnbilledTripsComponent', () => {
     component.selectedTripIds = new Set(['1', '2']);
     component.soilRateOverride = 40;
     component.gstPercent = 5;
-    component.advancePayment = 50;
 
     expect(component.invoiceSubtotal).toBe(600);
     expect(component.invoiceTax).toBe(60);
     expect(component.invoiceTotal).toBe(660);
-    expect(component.invoiceDue).toBe(610);
+    expect(component.invoiceDue).toBe(660);
   });
 
   it('loads owner details, marks selected trips billed, saves, and prints the invoice', () => {
@@ -158,7 +157,6 @@ describe('UnbilledTripsComponent', () => {
       { id: 9, customerName: 'Acme', soilBrass: 2, soilRate: 100, advance: 25 },
     ];
     component.selectedTripIds.add('9');
-    component.advancePayment = 25;
     component.gstPercent = 5;
 
     const printWindow = {
@@ -191,6 +189,8 @@ describe('UnbilledTripsComponent', () => {
     expect(saveRequest.request.body.customerName).toBe('Acme');
     expect(saveRequest.request.body.invoice).toContain('&lt;Acme Transport&gt;');
     expect(saveRequest.request.body.invoice).toContain('GST123');
+    expect(saveRequest.request.body.invoice).toContain('Total Amount to Pay</th><td colspan="6">0</td>');
+    expect(saveRequest.request.body.invoice).toContain('Total Due Amount</th><td colspan="6">220</td>');
     saveRequest.flush('Invoice saved');
     httpTesting.expectOne(`${apiUrl}/api/treep/getAll`).flush([]);
 
