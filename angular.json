@@ -32,7 +32,8 @@
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "prerender": false
           },
           "configurations": {
             "production": {
@@ -66,9 +67,7 @@
             "allowedHosts": [
               "localhost",
               "127.0.0.1",
-              "10.226.41.160",
-              "172.22.240.1",
-              "172.25.80.1"
+              "0.0.0.0"
             ]
           },
           "configurations": {
