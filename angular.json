@@ -31,10 +31,8 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
-              "entry": "src/server.ts",
-              "prerender": false
-            },
-            "prerender": false
+              "entry": "src/server.ts"
+            }
           },
           "configurations": {
             "production": {
