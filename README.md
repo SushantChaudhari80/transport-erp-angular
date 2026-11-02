@@ -4,9 +4,12 @@ An Angular application for transport, fleet, and operations management.
 
 ## Product documentation
 
-See the [Transport ERP client overview and user guide](docs/transport-erp-user-guide.md)
-for web module instructions, common workflows, driver Android app capabilities,
-and screenshot placeholders.
+See the client documentation:
+
+- [Transport ERP user guide](docs/transport-erp-user-guide.md) for employee
+  workflows and feature availability.
+- [Transport ERP technical guidance](docs/transport-erp-technical-guidance.md)
+  for setup, integration, deployment, troubleshooting, and security notes.
 
 ## Requirements
 
@@ -41,11 +44,14 @@ variable.
 
 ## Sign-in
 
-The login form calls `GET http://localhost:8081/login/user` with `email` and
-`pass` query parameters. A successful HTTP response navigates to `/dashboard`;
-HTTP 401/403 responses are shown as invalid credentials.
+The login form calls `GET {API_URL}/login/user` with `email` and `pass` query
+parameters. The API base URL is currently set in
+`src/app/core/services/host.ts`. A successful response navigates to
+`/dashboard` when its `message` is `success`; HTTP 401/403 responses are shown
+as invalid credentials.
 
-The API host is configured in `src/app/core/services/host.ts`. The backend must
-allow browser requests from the app's origin. Before production use, move
-credentials to a TLS-protected POST request body and protect the dashboard with
-authentication and authorization.
+The backend must allow browser requests from the app's origin. The current
+administrator console also uses prototype client-side authentication. Before
+production use, move credentials to a TLS-protected POST request body, replace
+the prototype admin login with server-side authentication and authorization,
+and protect all operational APIs.

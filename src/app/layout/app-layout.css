@@ -889,6 +889,16 @@
     padding-inline: 11px;
     font-size: 13px;
   }
+  
+  .topbar-title,
+  .profile-chevron {  
+    display: none;
+  }
+
+  .profile-menu .profile-toggle-name {
+    display: none;
+  }
+
 }
 
 @media (max-width: 500px) {

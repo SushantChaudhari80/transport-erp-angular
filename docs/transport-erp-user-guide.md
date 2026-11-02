@@ -2,9 +2,11 @@
 ## Client overview and user guide
 
 Transport ERP brings transport, fleet, trip, machine-reading, and finance
-workflows together in one workspace. Use the web application to manage
-day-to-day operations and reporting, and the companion Android application to
-give drivers access to the work and records relevant to them.
+workflows together in one web workspace. This guide describes the Angular web
+application in this release. A companion Android driver application is
+described separately below; its source code is not part of this web
+application repository, so confirm mobile screens and capabilities against the
+client's released Android build before distributing those instructions.
 
 > **Screenshots:** Screenshot markers throughout this guide are placeholders.
 > Add approved product screenshots in these locations before sharing a
@@ -39,8 +41,8 @@ give drivers access to the work and records relevant to them.
 
 The menu is grouped into Overview, Fleet operations, Utilities, and Finance &
 reports. A floating **Chat** control is available in the signed-in workspace.
-The current chat is a demonstration assistant with generic responses; it is
-not yet connected to an operational support or AI chat service.
+It sends messages to the connected assistant service and can reopen recent
+chat sessions. Chat availability depends on the configured service.
 
 **Screenshot placeholder — Sign-in screen**
 
@@ -299,21 +301,45 @@ their progress.
 The account menu shows profile information returned for the signed-in account
 and provides the available sign-out action.
 
-The floating chat window can be opened and collapsed. Messages are kept in
-local browser storage for the signed-in session and cleared when the user
-signs out. The current assistant uses generic demo responses; live chat
-integration is not available yet.
+The floating chat window can be opened, collapsed, or closed. Start a new
+conversation or select a recent session to continue it. Send a question using
+the message field; the assistant's reply and conversation history come from
+the connected service. The browser clears its current chat view when you sign
+out; chat history may remain available from the service.
 
 **Screenshot placeholder — Account profile menu**
 
 **Screenshot placeholder — Collapsible chat window**
+
+### 17. Administrator console
+
+The separate administrator console is available at `/admin/login`. Authorized
+administrators can open **ChatBot management** to upload or remove knowledge
+documents (PDF, DOC, DOCX, TXT, or Markdown), review recorded chat sessions,
+load a conversation, send a test message, and clear a session's history. Use
+**Incident management** to review reports, change incident status, and add
+comments.
+
+The current administrator sign-in is a prototype and is not suitable for
+protecting production data. Do not rely on this console for real
+administrator access until the client's identity provider and server-side
+authorization have been integrated.
+
+**Screenshot placeholder — Administrator sign-in**
+
+**Screenshot placeholder — ChatBot management knowledge documents and sessions**
+
+**Screenshot placeholder — Administrator incident management**
 
 ---
 
 ## Driver Android application
 
 The Android companion app is designed for drivers and provides sign-in access
-to their day-to-day work. Based on the available mobile app functionality,
+to their day-to-day work. The following capabilities were supplied for this
+guide but are not implemented or verifiable in this Angular web repository.
+Confirm the screens and permissions in the released mobile app before sharing
+this section with drivers. Based on that supplied product information,
 drivers can:
 
 - Sign in with their driver account.

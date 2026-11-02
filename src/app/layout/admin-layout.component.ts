@@ -16,6 +16,10 @@ export class AdminLayoutComponent {
     private readonly router: Router,
   ) {}
 
+  get currentPageLabel(): string {
+    return this.router.url.includes('/incidents') ? 'Incident management' : 'ChatBot management';
+  }
+
   logout(): void {
     this.auth.logout();
     void this.router.navigate(['/admin/login']);

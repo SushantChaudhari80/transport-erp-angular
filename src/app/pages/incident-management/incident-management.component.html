@@ -1,0 +1,142 @@
+<section class="incident-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">OPERATIONS</p>
+      <h1>Incident management</h1>
+      <p class="page-description">Review reports, coordinate responses, and keep every update in one place.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="toggleCreateForm()">
+      <span aria-hidden="true">+</span> Report incident
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="feedback error-feedback" role="alert">{{ error() }}</div>
+  }
+  @if (notice()) {
+    <div class="feedback success-feedback" role="status">{{ notice() }}</div>
+  }
+
+  @if (showCreateForm()) {
+    <section class="panel create-panel" aria-labelledby="create-heading">
+      <div class="panel-heading">
+        <div><p class="eyebrow">NEW REPORT</p><h2 id="create-heading">Report an incident</h2></div>
+        <button class="icon-button" type="button" aria-label="Close form" (click)="toggleCreateForm()">×</button>
+      </div>
+      <form class="incident-form" (ngSubmit)="createIncident()">
+        <label class="field field-title">Title
+          <input name="title" [(ngModel)]="draft.title" maxlength="200" required placeholder="Briefly describe the issue" />
+        </label>
+        <label class="field">Category
+          <select name="category" [(ngModel)]="draft.category">
+            @for (category of categories; track category) { <option [value]="category">{{ category }}</option> }
+          </select>
+        </label>
+        <label class="field">Priority
+          <select name="priority" [(ngModel)]="draft.priority">
+            @for (priority of priorities; track priority) { <option [value]="priority">{{ priority }}</option> }
+          </select>
+        </label>
+        <label class="field field-description">Description
+          <textarea name="description" [(ngModel)]="draft.description" maxlength="2000" required rows="3" placeholder="Add relevant details for the response team"></textarea>
+        </label>
+        <div class="form-actions">
+          <button class="secondary-button" type="button" (click)="toggleCreateForm()">Cancel</button>
+          <button class="primary-button" type="submit" [disabled]="creatingIncident()">
+            {{ creatingIncident() ? 'Submitting…' : 'Submit report' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="overview" aria-label="Incident overview">
+    <article class="summary-card"><span class="summary-icon open-icon">!</span><div><span>Open</span><strong>{{ openIncidentCount }}</strong></div></article>
+    <article class="summary-card"><span class="summary-icon progress-icon">↻</span><div><span>In progress</span><strong>{{ inProgressIncidentCount }}</strong></div></article>
+    <article class="summary-card"><span class="summary-icon resolved-icon">✓</span><div><span>Resolved</span><strong>{{ resolvedIncidentCount }}</strong></div></article>
+    <article class="summary-card total-card"><span class="summary-icon total-icon">▤</span><div><span>Total incidents</span><strong>{{ incidents().length }}</strong></div></article>
+  </section>
+
+  <section class="panel incident-list-panel">
+    <div class="list-heading">
+      <div><p class="eyebrow">INCIDENT REGISTER</p><h2>All incidents <span class="count">{{ filteredIncidents.length }}</span></h2></div>
+      <div class="list-controls">
+        <label class="search-control"><span aria-hidden="true">⌕</span><input aria-label="Search incidents" [(ngModel)]="searchTerm" placeholder="Search incidents" /></label>
+        <select aria-label="Filter by status" [(ngModel)]="statusFilter">
+          <option value="">All statuses</option>
+          @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+        </select>
+        <button class="refresh-button" type="button" aria-label="Refresh incidents" [disabled]="loadingIncidents()" (click)="loadIncidents()">↻</button>
+      </div>
+    </div>
+
+    @if (loadingIncidents() && incidents().length === 0) {
+      <div class="empty-state"><span class="loading-mark">↻</span><strong>Loading incidents</strong><p>Fetching the latest incident reports…</p></div>
+    } @else if (filteredIncidents.length === 0) {
+      <div class="empty-state"><span class="empty-mark">◎</span><strong>{{ incidents().length ? 'No matching incidents' : 'No incidents yet' }}</strong><p>{{ incidents().length ? 'Try adjusting your search or status filter.' : 'New reports will appear here.' }}</p></div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>INCIDENT</th><th>CATEGORY</th><th>PRIORITY</th><th>STATUS</th><th>REPORTED</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            @for (incident of filteredIncidents; track incident.id) {
+              <tr>
+                <td><button class="incident-link" type="button" (click)="openIncident(incident)"><span>{{ incident.incidentCode }}</span><strong>{{ incident.title }}</strong></button></td>
+                <td><span class="category-cell">{{ incident.category }}</span></td>
+                <td><span class="priority-pill" [class]="'priority-pill priority-' + incident.priority.toLowerCase()">{{ incident.priority }}</span></td>
+                <td><span class="status-pill" [class]="'status-pill status-' + incident.status.toLowerCase().replace(' ', '-')">{{ incident.status }}</span></td>
+                <td><span class="reported-date">{{ incident.createdAt | date: 'mediumDate' }}</span><small>{{ incident.createdBy }}</small></td>
+                <td><button class="view-button" type="button" (click)="openIncident(incident)">View <span aria-hidden="true">↗</span></button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (selectedIncident(); as incident) {
+    <div class="modal-backdrop" (click)="closeIncident()">
+      <section class="detail-modal" role="dialog" aria-modal="true" [attr.aria-label]="'Incident ' + incident.incidentCode" (click)="$event.stopPropagation()">
+        <header class="detail-header">
+          <div><p class="eyebrow">INCIDENT DETAILS</p><h2>{{ incident.incidentCode }}</h2></div>
+          <button class="icon-button" type="button" aria-label="Close incident details" (click)="closeIncident()">×</button>
+        </header>
+        @if (loadingDetails()) {
+          <div class="detail-loading">Loading incident details…</div>
+        } @else {
+          <div class="detail-scroll">
+            <div class="detail-title-row"><div><h3>{{ incident.title }}</h3><span class="reported-date">Reported {{ incident.createdAt | date: 'medium' }} by {{ incident.createdBy }}</span></div><span class="priority-pill" [class]="'priority-pill priority-' + incident.priority.toLowerCase()">{{ incident.priority }}</span></div>
+            <div class="detail-meta"><div><span>Category</span><strong>{{ incident.category }}</strong></div><div><span>Last updated</span><strong>{{ incident.updatedAt | date: 'medium' }}</strong></div></div>
+            <div class="description-block"><span class="section-label">DESCRIPTION</span><p>{{ incident.description }}</p></div>
+
+            <section class="status-section">
+              <div><span class="section-label">STATUS</span><p>Keep the response team up to date.</p></div>
+              <select aria-label="Incident status" [ngModel]="incident.status" (ngModelChange)="changeStatus($event)" [disabled]="updatingStatus()">
+                @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+              </select>
+            </section>
+
+            <section class="comments-section">
+              <div class="comments-heading"><div><span class="section-label">ACTIVITY</span><h3>Comments <span>{{ comments().length }}</span></h3></div><span class="oldest-note">Oldest first</span></div>
+              @if (comments().length === 0) {
+                <p class="no-comments">No comments yet. Add the first update below.</p>
+              } @else {
+                <div class="comment-list">
+                  @for (comment of comments(); track comment.id) {
+                    <article class="comment-entry"><span class="comment-avatar">{{ comment.commentedBy === 'Admin' ? 'A' : comment.commentedBy.slice(0, 1).toUpperCase() }}</span><div class="comment-content"><div class="comment-author"><strong>{{ comment.commentedBy }}</strong><time>{{ comment.createdAt | date: 'medium' }}</time></div><p>{{ comment.commentText }}</p></div></article>
+                  }
+                </div>
+              }
+              <form class="comment-form" (ngSubmit)="addComment()">
+                <label class="visually-hidden" for="comment-draft">Add a comment</label>
+                <textarea id="comment-draft" name="comment" [ngModel]="commentDraft()" (ngModelChange)="commentDraft.set($event)" maxlength="5000" rows="3" placeholder="Write an update…" required></textarea>
+                <div class="comment-actions"><span>Posting as <strong>Admin</strong></span><button class="primary-button" type="submit" [disabled]="savingComment() || !commentDraft().trim()">{{ savingComment() ? 'Posting…' : 'Post comment' }}</button></div>
+              </form>
+            </section>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</section>

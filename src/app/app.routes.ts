@@ -42,6 +42,13 @@ export const routes: Routes = [
                 ({ AdminChatbotComponent }) => AdminChatbotComponent,
               ),
           },
+          {
+            path: 'incidents',
+            loadComponent: () =>
+              import('./pages/incident-management/incident-management.component').then(
+                ({ IncidentManagementComponent }) => IncidentManagementComponent,
+              ),
+          },
         ],
       },
     ],

@@ -27,7 +27,13 @@
           ChatBot management
           <span class="submenu-status" aria-hidden="true"></span>
         </a>
+        <a class="submenu-link" routerLink="/admin/incidents" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <span class="submenu-dot" aria-hidden="true"></span>
+          Incident management
+          <span class="submenu-status" aria-hidden="true"></span>
+        </a>
       </div>
+      
 
       <p class="navigation-heading later-heading">COMING LATER</p>
       <div class="future-item"><span aria-hidden="true">▦</span> User management <small>SOON</small></div>
@@ -46,7 +52,7 @@
 
   <main class="admin-main">
     <header class="admin-topbar">
-      <div class="breadcrumb"><span>Admin</span><span aria-hidden="true">/</span><strong>ChatBot management</strong></div>
+      <div class="breadcrumb"><span>Admin</span><span aria-hidden="true">/</span><strong>{{ currentPageLabel }}</strong></div>
       <div class="topbar-right"><span class="environment"><i></i> LOCAL ENVIRONMENT</span><span class="topbar-divider"></span><span class="topbar-date">ADMIN WORKSPACE</span></div>
     </header>
     <router-outlet />
